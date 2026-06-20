@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #fff; overflow: hidden; }
+#replayer-root { width: 1280px; height: 800px; position: relative; }
+.replayer-wrapper { transform-origin: top left; }
+.replayer-mouse { display: none; }
+</style>
+</head>
+<body>
+<div id="replayer-root"></div>
+<script>
+window._errors = [];
+window._replayer = null;
+
+window.setupReplayer = function(events, width, height) {
+  try {
+    const root = document.getElementById('replayer-root');
+    root.style.width = (width || 1280) + 'px';
+    root.style.height = (height || 800) + 'px';
+    window._replayer = new rrweb.Replayer(events, {
+      root,
+      skipInactive: false,
+      showWarning: false,
+      showDebug: false,
+      liveMode: false,
+      speed: 1,
+    });
+    return { ok: true, duration: window._replayer.getMetaData()?.totalTime };
+  } catch(e) {
+    window._errors.push(e.message);
+    return { ok: false, error: e.message };
+  }
+};
+
+window.seekAndPause = function(timeMs) {
+  try {
+    if (!window._replayer) return { ok: false, error: 'No replayer' };
+    window._replayer.play(timeMs || 0);
+    window._replayer.pause(timeMs || 0);
+    return { ok: true };
+  } catch(e) {
+    window._errors.push(e.message);
+    return { ok: false, error: e.message };
+  }
+};
+
+window.getErrors = function() { return window._errors; };
+</script>
+</body>
+</html>
