@@ -7,6 +7,7 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
+    "postinstall": "node scripts/install-browser.js",
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "crawl:docs": "node scripts/crawl-docs.js",
