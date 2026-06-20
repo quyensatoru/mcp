@@ -1,25 +1,25 @@
 {
-  "mcpServers": {
-    "mida-mcp": {
-      "command": "node",
-      "args": ["src/index.js"],
-      "cwd": "/path/to/mida-mcp",
-      "env": {
-        "MCP_TRANSPORT": "stdio",
-        "PROXY_URI": "mongodb://...",
-        "API_URI_1": "mongodb://...",
-        "API_URI_2": "mongodb://...",
-        "HM_URI_1": "mongodb://...",
-        "HM_URI_2": "mongodb://...",
-        "RECORDER_URI_1": "mongodb://...",
-        "RECORDER_URI_2": "mongodb://...",
-        "REDIS_URL": "redis://localhost:6379",
-        "LOKI_URL": "https://...",
-        "LOKI_USER": "",
-        "LOKI_PASS": "",
-        "APP_API_BASE_URL": "https://api.getmida.com",
-        "APP_API_TOKEN": ""
-      }
+    "mcpServers": {
+        "mida-mcp": {
+            "command": "node",
+            "args": ["src/index.js"],
+            "cwd": "/path/to/mida-mcp",
+            "env": {
+                "MCP_TRANSPORT": "stdio",
+                "PROXY_URI": "mongodb://...",
+                "API_URI_1": "mongodb://...",
+                "API_URI_2": "mongodb://...",
+                "HM_URI_1": "mongodb://...",
+                "HM_URI_2": "mongodb://...",
+                "RECORDER_URI_1": "mongodb://...",
+                "RECORDER_URI_2": "mongodb://...",
+                "REDIS_URL": "redis://localhost:6379",
+                "LOKI_URL": "https://...",
+                "LOKI_USER": "",
+                "LOKI_PASS": "",
+                "APP_API_BASE_URL": "https://api.getmida.com",
+                "APP_API_TOKEN": ""
+            }
+        }
     }
-  }
 }

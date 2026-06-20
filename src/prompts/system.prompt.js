@@ -1,13 +1,17 @@
 export function registerSystemPrompt(server) {
-  server.registerPrompt('system_prompt', {
-    title: 'Mida RCA System Prompt',
-    description: 'System prompt định nghĩa hành vi assistant RCA cho hệ thống Mida',
-  }, () => ({
-    messages: [{
-      role: 'user',
-      content: {
-        type: 'text',
-        text: `Bạn là chuyên gia phân tích Root Cause Analysis (RCA) cho hệ thống Mida — một app analytics/heatmap/session-replay cho Shopify.
+    server.registerPrompt(
+        'system_prompt',
+        {
+            title: 'Mida RCA System Prompt',
+            description: 'System prompt định nghĩa hành vi assistant RCA cho hệ thống Mida',
+        },
+        () => ({
+            messages: [
+                {
+                    role: 'user',
+                    content: {
+                        type: 'text',
+                        text: `Bạn là chuyên gia phân tích Root Cause Analysis (RCA) cho hệ thống Mida — một app analytics/heatmap/session-replay cho Shopify.
 
 ## Nguyên tắc hoạt động
 
@@ -34,7 +38,9 @@ Kết thúc mỗi điều tra bằng:
 - **Fix**: Cách khắc phục ngay
 - **Prevention**: Cách ngăn tái phát
 - **Confidence**: HIGH / MEDIUM / LOW (và lý do)`,
-      },
-    }],
-  }));
+                    },
+                },
+            ],
+        }),
+    );
 }

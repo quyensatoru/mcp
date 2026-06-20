@@ -1,20 +1,25 @@
 import { z } from 'zod';
 
 export function registerRcaDataIntegrityPrompt(server) {
-  server.registerPrompt('rca_data_integrity', {
-    title: 'RCA: Dữ liệu lệch / Replica drift',
-    description: 'Playbook chẩn đoán lệch dữ liệu giữa api ↔ recorder/heatmap, missing reports',
-    argsSchema: z.object({
-      domain: z.string(),
-      entity: z.enum(['session', 'shop', 'analytic']).optional().default('session'),
-      timeRange: z.string().optional(),
-    }),
-  }, ({ domain, entity, timeRange }) => ({
-    messages: [{
-      role: 'user',
-      content: {
-        type: 'text',
-        text: `# RCA: Data Integrity / Replica Drift
+    server.registerPrompt(
+        'rca_data_integrity',
+        {
+            title: 'RCA: Dữ liệu lệch / Replica drift',
+            description:
+                'Playbook chẩn đoán lệch dữ liệu giữa api ↔ recorder/heatmap, missing reports',
+            argsSchema: z.object({
+                domain: z.string(),
+                entity: z.enum(['session', 'shop', 'analytic']).optional().default('session'),
+                timeRange: z.string().optional(),
+            }),
+        },
+        ({ domain, entity, timeRange }) => ({
+            messages: [
+                {
+                    role: 'user',
+                    content: {
+                        type: 'text',
+                        text: `# RCA: Data Integrity / Replica Drift
 
 **Shop**: ${domain}
 **Entity**: ${entity}
@@ -61,7 +66,9 @@ mongo_get_analytic("${domain}", dateFrom="<date>", dateTo="<date>")
 | sessionMissing cao | Consumer down/crashed | Restart recorder service |
 | STALE docs | Partial consumer failure | Check consumer retry logic |
 | analyticMissing | Analytic aggregation worker lỗi | Check loki_search_errors(app="sama-api", level="error") |`,
-      },
-    }],
-  }));
+                    },
+                },
+            ],
+        }),
+    );
 }

@@ -9,13 +9,13 @@ import { registerMongoIntegrityTools } from './mongo-integrity.tool.js';
 import { registerRrwebTools } from './rrweb.tool.js';
 
 export function registerAllTools(server) {
-  registerPingTool(server);
-  registerDocsTool(server);
-  registerLokiTools(server);
-  registerMongoTools(server);
-  registerShopifyTools(server);
-  registerAppApiTools(server);
-  registerMongoPipelineTools(server);
-  registerMongoIntegrityTools(server);
-  registerRrwebTools(server);
+    registerPingTool(server);
+    registerDocsTool(server);
+    registerLokiTools(server);
+    registerMongoTools(server);
+    registerShopifyTools(server);
+    registerAppApiTools(server);
+    registerMongoPipelineTools(server);
+    registerMongoIntegrityTools(server);
+    registerRrwebTools(server);
 }

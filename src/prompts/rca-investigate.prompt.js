@@ -1,22 +1,34 @@
 import { z } from 'zod';
 
 export function registerRcaInvestigatePrompt(server) {
-  server.registerPrompt('rca_investigate', {
-    title: 'RCA: Điều tra tổng quát',
-    description: 'Orchestrator RCA: từ mô tả issue → lập kế hoạch điều tra đa tầng → gọi tool → kết luận',
-    argsSchema: z.object({
-      issue: z.string().describe('Mô tả issue, vd: "shop abc.myshopify.com không ghi session"'),
-      domain: z.string().optional().describe('Shopify domain nếu biết'),
-      sessionId: z.string().optional().describe('Session ID nếu có'),
-      timeRange: z.string().optional().describe('Khoảng thời gian, vd: "last 2 hours", "2024-01-15"'),
-      area: z.enum(['recording', 'heatmap', 'analytics', 'replay', 'shopify', 'unknown']).optional(),
-    }),
-  }, ({ issue, domain, sessionId, timeRange, area }) => ({
-    messages: [{
-      role: 'user',
-      content: {
-        type: 'text',
-        text: `# RCA Investigation
+    server.registerPrompt(
+        'rca_investigate',
+        {
+            title: 'RCA: Điều tra tổng quát',
+            description:
+                'Orchestrator RCA: từ mô tả issue → lập kế hoạch điều tra đa tầng → gọi tool → kết luận',
+            argsSchema: z.object({
+                issue: z
+                    .string()
+                    .describe('Mô tả issue, vd: "shop abc.myshopify.com không ghi session"'),
+                domain: z.string().optional().describe('Shopify domain nếu biết'),
+                sessionId: z.string().optional().describe('Session ID nếu có'),
+                timeRange: z
+                    .string()
+                    .optional()
+                    .describe('Khoảng thời gian, vd: "last 2 hours", "2024-01-15"'),
+                area: z
+                    .enum(['recording', 'heatmap', 'analytics', 'replay', 'shopify', 'unknown'])
+                    .optional(),
+            }),
+        },
+        ({ issue, domain, sessionId, timeRange, area }) => ({
+            messages: [
+                {
+                    role: 'user',
+                    content: {
+                        type: 'text',
+                        text: `# RCA Investigation
 
 **Issue**: ${issue}
 ${domain ? `**Shop**: ${domain}` : ''}
@@ -37,33 +49,47 @@ Dùng \`loki_search_errors\` và/hoặc \`loki_trace\` để tìm lỗi quanh th
 
 ### Bước 4: Rẽ nhánh theo triệu chứng
 
-${area === 'recording' || !area ? `
+${
+    area === 'recording' || !area
+        ? `
 **Nếu "session/heatmap không ghi"**:
 1. \`mongo_session_trace(domain, sessionId)\` → tìm tầng đứt (Session/PageView/Event)
 2. Nếu 0 PageView: \`shopify_check_embed\` → embed có active không?
 3. Nếu có PageView nhưng 0 Event: \`loki_trace\` → tìm lỗi ingest
 4. \`mongo_compare_replica\` + \`mongo_missing_report\` → recorder có thiếu không?
-` : ''}
+`
+        : ''
+}
 
-${area === 'replay' || !area ? `
+${
+    area === 'replay' || !area
+        ? `
 **Nếu lỗi hiển thị/replay**:
 1. \`rrweb_list(domain, sessionId)\` → kiểm tra có events không
 2. \`rrweb_render(domain, pageViewId)\` → render snapshot
 3. \`screenshot_url(compareUrl)\` → chụp live
 4. \`rrweb_diagnose\` → so sánh diff
-` : ''}
+`
+        : ''
+}
 
-${area === 'analytics' || !area ? `
+${
+    area === 'analytics' || !area
+        ? `
 **Nếu số liệu sai/thiếu**:
 1. \`mongo_get_analytic(domain, dateFrom, dateTo)\` → xem data thực tế
 2. \`mongo_replica_lag(domain)\` → recorder có lag không?
 3. \`loki_queue_health\` → consumer có lỗi không?
-` : ''}
+`
+        : ''
+}
 
 ### Bước 5: Tổng hợp
 Sau khi thu thập đủ bằng chứng, viết output chuẩn:
 - **Root Cause** · **Evidence** · **Impact** · **Fix** · **Prevention** · **Confidence**`,
-      },
-    }],
-  }));
+                    },
+                },
+            ],
+        }),
+    );
 }

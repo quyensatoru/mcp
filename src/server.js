@@ -6,16 +6,16 @@ import { registerAllPrompts } from './prompts/index.js';
 let _server = null;
 
 export function createMcpServer() {
-  if (_server) return _server;
+    if (_server) return _server;
 
-  _server = new McpServer({
-    name: 'mida-mcp',
-    version: '1.0.0',
-  });
+    _server = new McpServer({
+        name: 'mida-mcp',
+        version: '1.0.0',
+    });
 
-  registerAllResources(_server);
-  registerAllTools(_server);
-  registerAllPrompts(_server);
+    registerAllResources(_server);
+    registerAllTools(_server);
+    registerAllPrompts(_server);
 
-  return _server;
+    return _server;
 }

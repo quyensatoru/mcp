@@ -1,20 +1,25 @@
 import { z } from 'zod';
 
 export function registerRcaRecordingPrompt(server) {
-  server.registerPrompt('rca_recording', {
-    title: 'RCA: Session/Heatmap không ghi',
-    description: 'Playbook chẩn đoán "session không ghi, heatmap trống, replay không có data"',
-    argsSchema: z.object({
-      domain: z.string().describe('Shopify domain'),
-      sessionId: z.string().optional(),
-      timeRange: z.string().optional().describe('Khoảng thời gian, vd: "now-2h"'),
-    }),
-  }, ({ domain, sessionId, timeRange }) => ({
-    messages: [{
-      role: 'user',
-      content: {
-        type: 'text',
-        text: `# RCA: Session/Heatmap không ghi
+    server.registerPrompt(
+        'rca_recording',
+        {
+            title: 'RCA: Session/Heatmap không ghi',
+            description:
+                'Playbook chẩn đoán "session không ghi, heatmap trống, replay không có data"',
+            argsSchema: z.object({
+                domain: z.string().describe('Shopify domain'),
+                sessionId: z.string().optional(),
+                timeRange: z.string().optional().describe('Khoảng thời gian, vd: "now-2h"'),
+            }),
+        },
+        ({ domain, sessionId, timeRange }) => ({
+            messages: [
+                {
+                    role: 'user',
+                    content: {
+                        type: 'text',
+                        text: `# RCA: Session/Heatmap không ghi
 
 **Shop**: ${domain}
 ${sessionId ? `**Session**: ${sessionId}` : ''}
@@ -70,7 +75,9 @@ loki_queue_health(channel="recorder-backup", start="${timeRange ?? 'now-2h'}")
 - 0 Event → **Root cause**: recording script lỗi hoặc event consumer drop (xem loki_queue_health)
 - sessionMissing cao → **Root cause**: recorder consumer down
 - lag > 5min → **Root cause**: queue nghẽn (số worker không đủ)`,
-      },
-    }],
-  }));
+                    },
+                },
+            ],
+        }),
+    );
 }

@@ -1,20 +1,25 @@
 import { z } from 'zod';
 
 export function registerRcaRrwebPrompt(server) {
-  server.registerPrompt('rca_rrweb', {
-    title: 'RCA: Lỗi hiển thị / UI vỡ',
-    description: 'Playbook chẩn đoán lỗi hiển thị qua so sánh rrweb snapshot ↔ live website',
-    argsSchema: z.object({
-      domain: z.string(),
-      sessionId: z.string().optional(),
-      compareUrl: z.string().optional().describe('URL trang cần so sánh'),
-    }),
-  }, ({ domain, sessionId, compareUrl }) => ({
-    messages: [{
-      role: 'user',
-      content: {
-        type: 'text',
-        text: `# RCA: Lỗi hiển thị / UI vỡ (rrweb Diagnose)
+    server.registerPrompt(
+        'rca_rrweb',
+        {
+            title: 'RCA: Lỗi hiển thị / UI vỡ',
+            description:
+                'Playbook chẩn đoán lỗi hiển thị qua so sánh rrweb snapshot ↔ live website',
+            argsSchema: z.object({
+                domain: z.string(),
+                sessionId: z.string().optional(),
+                compareUrl: z.string().optional().describe('URL trang cần so sánh'),
+            }),
+        },
+        ({ domain, sessionId, compareUrl }) => ({
+            messages: [
+                {
+                    role: 'user',
+                    content: {
+                        type: 'text',
+                        text: `# RCA: Lỗi hiển thị / UI vỡ (rrweb Diagnose)
 
 **Shop**: ${domain}
 ${sessionId ? `**Session**: ${sessionId}` : ''}
@@ -62,7 +67,9 @@ shopify_check_embed("${domain}")
 - **liveConsoleErrors**: JS lỗi trên storefront hiện tại (có thể do Shopify app conflict)
 
 Sau khi phân tích, kết luận theo format: **Root Cause · Evidence · Fix · Confidence**.`,
-      },
-    }],
-  }));
+                    },
+                },
+            ],
+        }),
+    );
 }
