@@ -145,7 +145,7 @@ export const replicaCompareService = {
             analyticMissing: { count: analyticMissing.length, items: analyticMissing },
             diagnosis:
                 sessionMissing.length || analyticMissing.length
-                    ? '⚠️ Có dữ liệu bị đánh dấu missing — recorder consumer có vấn đề'
+                    ? `ℹ️ sessionmissings=${sessionMissing.length} — shop đã đạt giới hạn session quota của plan (tính năng thiết kế, không phải lỗi). Dùng mongo_resolve_shop để xem subscription_info.session_limit.`
                     : '✅ Không có missing records trong khoảng thời gian này',
         };
     },
