@@ -21,25 +21,36 @@ async function startHttp() {
     const express = (await import('express')).default;
     const { StreamableHTTPServerTransport } =
         await import('@modelcontextprotocol/sdk/server/streamableHttp.js');
-    const { randomUUID } = await import('node:crypto');
     const { authMiddleware } = await import('./middleware/auth.middleware.js');
 
     const app = express();
     app.use(express.json());
 
-    // Health check — không cần auth
     app.get('/healthz', (_req, res) => {
         res.json({ status: 'ok', server: 'mida-mcp', ts: new Date().toISOString() });
     });
 
-    // MCP endpoint (Streamable HTTP) — protected
-    app.all('/mcp', authMiddleware, async (req, res) => {
+    app.post('/mcp', authMiddleware, async (req, res) => {
+        logger.info(`method: ${req.body?.method}, params: ${JSON.stringify(req.body?.params)}`);
         const server = createMcpServer();
-        const transport = new StreamableHTTPServerTransport({
-            sessionIdGenerator: () => randomUUID(),
+        const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+        res.on('close', () => {
+            transport.close();
+            server.close();
         });
-        await server.connect(transport);
-        await transport.handleRequest(req, res, req.body);
+        try {
+            await server.connect(transport);
+            await transport.handleRequest(req, res, req.body);
+        } catch (err) {
+            logger.error({ err }, 'MCP request failed');
+            if (!res.headersSent) {
+                res.status(500).json({
+                    jsonrpc: '2.0',
+                    error: { code: -32603, message: 'Internal server error' },
+                    id: null,
+                });
+            }
+        }
     });
 
     app.listen(env.PORT, () => {

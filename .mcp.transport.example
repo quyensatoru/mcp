@@ -17,8 +17,6 @@
                 "LOKI_URL": "https://...",
                 "LOKI_USER": "",
                 "LOKI_PASS": "",
-                "APP_API_BASE_URL": "https://api.getmida.com",
-                "APP_API_TOKEN": ""
             }
         }
     }

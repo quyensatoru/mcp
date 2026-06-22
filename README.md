@@ -38,8 +38,6 @@ cp .env.example .env              # điền các URI / token
 | `REDIS_URL`                         |          | Redis (mặc định `redis://localhost:6379`)        |
 | `LOKI_URL`                          |          | Grafana Loki endpoint                            |
 | `LOKI_TOKEN`                        |          | Bearer token (hoặc dùng `LOKI_USER`+`LOKI_PASS`) |
-| `SHOPIFY_API_VERSION`               |          | Mặc định `2024-04`                               |
-| `APP_API_BASE_URL`                  |          | Mida backend URL                                 |
 | `FIRECRAWL_API_KEY`                 | crawl    | API key Firecrawl                                |
 | `MIDA_DOCS_URL`                     | crawl    | URL trang docs để crawl                          |
 
@@ -65,7 +63,54 @@ npm run docs:index    # Build MiniSearch index → data/mida-doc/index.json
 
 ## Cấu hình Claude Desktop / Claude Code
 
-Sao chép `.mcp.json.example` → `.mcp.json` và điền đường dẫn tuyệt đối.
+### Cách 1 — Local (stdio)
+
+Sao chép `.mcp.json.example` → `.mcp.json` và điền đường dẫn tuyệt đối. Stdio
+không cần JWT.
+
+### Cách 2 — HTTP (remote)
+
+Server chạy HTTP mode expose `POST http://<host>:<PORT>/mcp` (Streamable HTTP,
+stateless — không giữ session nên restart server trong suốt với client), bảo vệ
+bằng **JWT Bearer**. Health check: `GET /healthz` (không cần auth).
+
+```bash
+MCP_TRANSPORT=http npm start                 # khởi động server (mặc định PORT=3000)
+node scripts/gen-token.js claude-desktop 30d # sinh JWT Bearer token
+```
+
+**Claude Code** hỗ trợ HTTP MCP trực tiếp — sao chép `.mcp.http.json.example` →
+`.mcp.json`, điền `url` + token vào header `Authorization`.
+
+**Claude Desktop** (config file chỉ nói stdio) cần cầu nối `mcp-remote` để gắn
+header. Thêm vào `claude_desktop_config.json` — xem `claude_desktop_config.example.json`:
+
+```json
+{
+    "mcpServers": {
+        "mida-mcp": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "mcp-remote",
+                "http://localhost:3000/mcp",
+                "--header",
+                "Authorization:${AUTH_HEADER}"
+            ],
+            "env": { "AUTH_HEADER": "Bearer <PASTE_TOKEN>" }
+        }
+    }
+}
+```
+
+> Token để trong `env.AUTH_HEADER` (giá trị có dấu cách) thay vì nhét thẳng vào
+> `--header` — đây là workaround cho bug split arg có dấu cách của Claude Desktop.
+
+File config Claude Desktop nằm ở:
+
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+- Linux: `~/.config/Claude/claude_desktop_config.json`
 
 ## RCA workflow
 

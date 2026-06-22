@@ -18,7 +18,7 @@ const envSchema = z.object({
     RECORDER_URI_1: z.string().url().optional(),
     RECORDER_URI_2: z.string().url().optional(),
 
-    REDIS_URL: z.string().default('redis://localhost:6379'),
+    REDIS_URL: z.string().optional(),
     CACHE_TTL: z.coerce.number().default(300),
 
     LOKI_URL: z.string().url().optional(),
@@ -26,11 +26,6 @@ const envSchema = z.object({
     LOKI_USER: z.string().optional(),
     LOKI_PASS: z.string().optional(),
     LOKI_ORG_ID: z.string().optional(),
-
-    SHOPIFY_API_VERSION: z.string().default('2024-04'),
-
-    APP_API_BASE_URL: z.string().url().optional(),
-    APP_API_TOKEN: z.string().optional(),
 
     FIRECRAWL_API_KEY: z.string().optional(),
     MIDA_DOCS_URL: z.string().url().optional(),

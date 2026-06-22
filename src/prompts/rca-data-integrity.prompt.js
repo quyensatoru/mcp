@@ -7,11 +7,11 @@ export function registerRcaDataIntegrityPrompt(server) {
             title: 'RCA: Dữ liệu lệch / Replica drift',
             description:
                 'Playbook chẩn đoán lệch dữ liệu giữa api ↔ recorder/heatmap, missing reports',
-            argsSchema: z.object({
+            argsSchema: {
                 domain: z.string(),
                 entity: z.enum(['session', 'shop', 'analytic']).optional().default('session'),
                 timeRange: z.string().optional(),
-            }),
+            },
         },
         ({ domain, entity, timeRange }) => ({
             messages: [

@@ -52,10 +52,9 @@ export const COLLECTION_WHITELIST = {
         'modules',
     ],
     heatmap: [
-        'snapshots',
-        'clicks',
-        'moves',
-        'scrolls',
+        'clickv2',
+        'movev2',
+        'scrollv3',
         'sessions',
         'pageviews',
         'pages',

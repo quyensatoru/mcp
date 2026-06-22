@@ -7,7 +7,7 @@ export function registerRcaInvestigatePrompt(server) {
             title: 'RCA: Điều tra tổng quát',
             description:
                 'Orchestrator RCA: từ mô tả issue → lập kế hoạch điều tra đa tầng → gọi tool → kết luận',
-            argsSchema: z.object({
+            argsSchema: {
                 issue: z
                     .string()
                     .describe('Mô tả issue, vd: "shop abc.myshopify.com không ghi session"'),
@@ -20,7 +20,7 @@ export function registerRcaInvestigatePrompt(server) {
                 area: z
                     .enum(['recording', 'heatmap', 'analytics', 'replay', 'shopify', 'unknown'])
                     .optional(),
-            }),
+            },
         },
         ({ issue, domain, sessionId, timeRange, area }) => ({
             messages: [

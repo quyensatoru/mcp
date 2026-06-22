@@ -475,8 +475,6 @@ Output chuẩn của AI: **Root cause · Evidence (kèm nguồn) · Impact · Fi
 | Mongo (recorder backup, 2 shard) | `RECORDER_URI_1`, `RECORDER_URI_2`                                |
 | Redis                            | `REDIS_URL`, `CACHE_TTL`                                          |
 | Loki                             | `LOKI_URL`, `LOKI_TOKEN` / `LOKI_USER`+`LOKI_PASS`, `LOKI_ORG_ID` |
-| Shopify                          | `SHOPIFY_API_VERSION` (token/shop resolve từ DB)                  |
-| App API                          | `APP_API_BASE_URL`, `APP_API_TOKEN`                               |
 | Firecrawl                        | `FIRECRAWL_API_KEY`, `MIDA_DOCS_URL`                              |
 
 - **Auth & quota**: JWT middleware + giới hạn quota/tenant (bê pattern reference).

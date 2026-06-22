@@ -7,11 +7,11 @@ export function registerRcaRrwebPrompt(server) {
             title: 'RCA: Lỗi hiển thị / UI vỡ',
             description:
                 'Playbook chẩn đoán lỗi hiển thị qua so sánh rrweb snapshot ↔ live website',
-            argsSchema: z.object({
+            argsSchema: {
                 domain: z.string(),
                 sessionId: z.string().optional(),
                 compareUrl: z.string().optional().describe('URL trang cần so sánh'),
-            }),
+            },
         },
         ({ domain, sessionId, compareUrl }) => ({
             messages: [
