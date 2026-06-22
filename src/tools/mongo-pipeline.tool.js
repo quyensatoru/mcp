@@ -283,10 +283,7 @@ export function registerMongoPipelineTools(server) {
             const event = await Event.findOne({ pageView: tryObjectId(pageViewId), type: 2 })
                 .lean({ getters: true })
                 .exec();
-            if (!event)
-                return errorContent(
-                    `Snapshot không tìm thấy cho pageview ${pageViewId}`,
-                );
+            if (!event) return errorContent(`Snapshot không tìm thấy cho pageview ${pageViewId}`);
             return okContent(
                 {
                     _id: event._id,
