@@ -3,19 +3,17 @@ import { registerAllTools } from './tools/index.js';
 import { registerAllResources } from './resources/index.js';
 import { registerAllPrompts } from './prompts/index.js';
 
-let _server = null;
-
+// Tạo instance MCP server mới cho mỗi request (stateless — xem index.js).
+// Một McpServer chỉ connect được tới đúng 1 transport, nên không tái dùng singleton.
 export function createMcpServer() {
-    if (_server) return _server;
-
-    _server = new McpServer({
+    const server = new McpServer({
         name: 'mida-mcp',
         version: '1.0.0',
     });
 
-    registerAllResources(_server);
-    registerAllTools(_server);
-    registerAllPrompts(_server);
+    registerAllResources(server);
+    registerAllTools(server);
+    registerAllPrompts(server);
 
-    return _server;
+    return server;
 }

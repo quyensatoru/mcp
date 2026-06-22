@@ -1,0 +1,17 @@
+{
+    "mcpServers": {
+        "mida-mcp": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "mcp-remote",
+                "http://localhost:3000/mcp",
+                "--header",
+                "Authorization:${AUTH_HEADER}"
+            ],
+            "env": {
+                "AUTH_HEADER": "Bearer PASTE_TOKEN_FROM_npm_run_gen:token"
+            }
+        }
+    }
+}

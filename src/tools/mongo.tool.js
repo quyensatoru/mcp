@@ -26,6 +26,32 @@ export function registerMongoTools(server) {
     // ── Group A: Resolve & shop ────────────────────────────────────────────────
 
     server.registerTool(
+        'mongo_resolve_field',
+        {
+            title: 'Mongo resolve collection',
+            description:
+                'Bước đầu tiên cho tool call find db. Dùng để lấy ra field trong collection. Dựa vào đó có để quyết định query filter theo field nào',
+            inputSchema: z.object({
+                domain: z.string().describe('Shopify domain, vd: "mystore.myshopify.com"'),
+                db: z.enum(['api', 'heatmap', 'recorder']).describe('Database cần query'),
+                collection: z.string().describe(
+                    `Collection name. Whitelist: ${Object.entries(COLLECTION_WHITELIST)
+                        .map(([k, v]) => `${k}: [${v.join(',')}]`)
+                        .join(' | ')}`,
+                ),
+            }),
+        },
+        wrap('mongo_resolve_field', async ({ domain, db, collection }) => {
+            const key = cacheKey('mongo_resolve_field', { domain, db, collection });
+            const result = await withCache(key, MONGO_TTL, async () => {
+                const fields = await mongoService.getFields({ domain, db, collection });
+                return { field: fields };
+            });
+            return okContent(result, { label: `Shop: ${domain}` });
+        }),
+    );
+
+    server.registerTool(
         'mongo_resolve_shop',
         {
             title: 'Mongo Resolve Shop',
@@ -119,7 +145,7 @@ export function registerMongoTools(server) {
         {
             title: 'Mongo Find',
             description:
-                'Đọc documents từ bất kỳ collection nào trong whitelist. domain tự động resolve shard.',
+                'Đọc documents từ bất kỳ collection nào trong whitelist. domain tự động resolve shard. Trước khi đặt filter/projection/sort, gọi mongo_resolve_field để biết field thật của collection.',
             inputSchema: z.object({
                 db: z.enum(['api', 'heatmap', 'recorder']).describe('Database cần query'),
                 collection: z.string().describe(
@@ -152,7 +178,7 @@ export function registerMongoTools(server) {
         {
             title: 'Mongo Aggregate',
             description:
-                'Chạy aggregation pipeline đọc-only. Chặn $out, $merge, $function, $where.',
+                'Chạy aggregation pipeline đọc-only. Chặn $out, $merge, $function, $where. Trước khi tham chiếu field trong pipeline, gọi mongo_resolve_field để biết field thật của collection.',
             inputSchema: z.object({
                 db: z.enum(['api', 'heatmap', 'recorder']),
                 collection: z.string(),
@@ -175,7 +201,7 @@ export function registerMongoTools(server) {
         {
             title: 'Mongo Count',
             description:
-                'Đếm nhanh documents. Không filter = estimatedDocumentCount (nhanh). Có filter = countDocuments (chính xác).',
+                'Đếm nhanh documents. Không filter = estimatedDocumentCount (nhanh). Có filter = countDocuments (chính xác). Khi đếm có filter, gọi mongo_resolve_field trước để chắc chắn field tồn tại.',
             inputSchema: z.object({
                 db: z.enum(['api', 'heatmap', 'recorder']),
                 collection: z.string(),

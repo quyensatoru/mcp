@@ -46,7 +46,7 @@ export function registerMongoIntegrityTools(server) {
         {
             title: 'Mongo Missing Report',
             description:
-                'Đọc sessionMissing + analytic_missing từ Recorder — những gì hệ thống tự đánh dấu là thiếu. Dấu hiệu trực tiếp của consumer/queue lỗi.',
+                'Đọc sessionMissing + analytic_missing từ Recorder — những gì hệ thống tự đánh dấu là thiếu. Dấu hiệu trực tiếp của việc đạt quá giới hạn quota record session.',
             inputSchema: z.object({
                 domain: z.string(),
                 dateFrom: z.string().optional().describe('YYYY-MM-DD'),

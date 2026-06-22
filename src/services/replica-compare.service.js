@@ -145,8 +145,8 @@ export const replicaCompareService = {
             analyticMissing: { count: analyticMissing.length, items: analyticMissing },
             diagnosis:
                 sessionMissing.length || analyticMissing.length
-                    ? '⚠️ Có dữ liệu bị đánh dấu missing — recorder consumer có vấn đề'
-                    : '✅ Không có missing records trong khoảng thời gian này',
+                    ? 'Có dữ liệu bị đánh dấu missing -> cho thấy khách đang vượt quá quota session limit của gói plan hiện tại -> check lại phần session_count trong shops đã đạt max so với session_limit trong subscription_info hay chưa ? '
+                    : 'Không có missing records trong khoảng thời gian này -> Khách vẫn chưa đạt limit quota',
         };
     },
 

@@ -10,7 +10,6 @@ import { getBehaviorModel } from '../models/api/behavior.model.js';
 import { getVisitorModel } from '../models/api/visitor.model.js';
 import { getAnalyticModel } from '../models/api/analytic.model.js';
 import { getShopModel } from '../models/api/shop.model.js';
-import { getSnapshotModel } from '../models/heatmap/snapshot.model.js';
 
 const MONGO_TTL = 120;
 const ObjectId = mongoose.Types.ObjectId;
@@ -232,7 +231,7 @@ export function registerMongoPipelineTools(server) {
         {
             title: 'Mongo Get Events (rrweb)',
             description:
-                'Đọc rrweb replay Events theo pageViewId, tự giải nén gzip+base64. Kết quả dùng cho rrweb_render. Chú ý: events có thể rất nhiều, dùng limit.',
+                'Đọc rrweb replay Events theo pageViewId, tự giải nén gzip+base64. Kết quả dùng cho rrweb_render. Chú ý: events có thể rất nhiều, dùng limit. Yêu cầu sẽ lấy ra pageview id từ các tool khác trước',
             inputSchema: z.object({
                 domain: z.string(),
                 pageViewId: z.string().describe('ObjectId của PageView'),
@@ -240,15 +239,14 @@ export function registerMongoPipelineTools(server) {
                     .number()
                     .int()
                     .min(1)
-                    .max(2000)
-                    .default(500)
+                    .max(100)
+                    .default(10)
                     .describe('Giới hạn số events (tăng nếu cần replay đầy đủ)'),
             }),
         },
         wrap('mongo_get_events', async ({ domain, pageViewId, limit }) => {
             const { api } = await getShardConns(domain);
             const Event = getEventModel(api);
-            // Không cache vì data lớn và ít thay đổi sau session close
             const events = await Event.find({ pageView: tryObjectId(pageViewId) })
                 .sort({ timestamp: 1 })
                 .limit(limit)
@@ -274,35 +272,30 @@ export function registerMongoPipelineTools(server) {
         {
             title: 'Mongo Get Snapshot (rrweb full DOM)',
             description:
-                'Đọc Snapshot (full DOM snapshot) của một Page từ HeatmapV{n}, tự giải nén. Dùng cho rrweb_diagnose.',
+                'Đọc Snapshot (full DOM snapshot) của một PageView ID , tự giải nén. Dùng cho rrweb_diagnose.',
             inputSchema: z.object({
                 domain: z.string(),
-                pageId: z.string().describe('ObjectId của Page'),
+                pageViewId: z.string().describe('ObjectId của PageView'),
             }),
         },
-        wrap('mongo_get_snapshot', async ({ domain, pageId }) => {
+        wrap('mongo_get_snapshot', async ({ domain, pageViewId }) => {
             const { heatmap } = await getShardConns(domain);
-            const Snapshot = getSnapshotModel(heatmap);
-            const snapshot = await Snapshot.findOne({ page: tryObjectId(pageId) })
+            const event = await Event.findOne({ pageView: tryObjectId(pageViewId), type: 2 })
                 .lean({ getters: true })
                 .exec();
-            if (!snapshot)
+            if (!event)
                 return errorContent(
-                    `Snapshot không tìm thấy cho page ${pageId}`,
-                    'Có thể heatmap chưa chạy hoặc page chưa có đủ pageviews.',
+                    `Snapshot không tìm thấy cho pageview ${pageViewId}`,
                 );
             return okContent(
                 {
-                    _id: snapshot._id,
-                    href: snapshot.type4?.href,
-                    width: snapshot.type4?.width,
-                    height: snapshot.type4?.height,
-                    timestamp: snapshot.timestamp,
-                    device: snapshot.device,
-                    hasType2: !!snapshot.type2,
-                    snapshotKeys: snapshot.type2 ? Object.keys(snapshot.type2) : [],
+                    _id: event._id,
+                    href: event.type,
+                    timestamp: event.timestamp,
+                    pageView: event.pageView,
+                    data: event.data,
                 },
-                { label: `Snapshot for page ${pageId}` },
+                { label: `Snapshot for pageview ${pageViewId}` },
             );
         }),
     );

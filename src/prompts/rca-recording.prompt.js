@@ -7,11 +7,11 @@ export function registerRcaRecordingPrompt(server) {
             title: 'RCA: Session/Heatmap không ghi',
             description:
                 'Playbook chẩn đoán "session không ghi, heatmap trống, replay không có data"',
-            argsSchema: z.object({
+            argsSchema: {
                 domain: z.string().describe('Shopify domain'),
                 sessionId: z.string().optional(),
                 timeRange: z.string().optional().describe('Khoảng thời gian, vd: "now-2h"'),
-            }),
+            },
         },
         ({ domain, sessionId, timeRange }) => ({
             messages: [
