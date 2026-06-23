@@ -1,21 +1,21 @@
 {
-  "name": "@mida/agent",
-  "version": "1.0.0",
-  "description": "",
-  "main": "src/index.js",
-  "type": "module",
-  "scripts": {
-    "dev": "node src/index.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.3.185",
-    "@mida/logger": "workspace:*",
-    "@mida/mattermost": "workspace:*",
-    "mongodb": "^7.3.0",
-    "mongoose": "^8.24.0",
-    "ws": "^8.21.0"
-  }
+    "name": "@mida/agent",
+    "version": "1.0.0",
+    "description": "",
+    "main": "src/index.js",
+    "type": "module",
+    "scripts": {
+        "dev": "node src/index.js"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@anthropic-ai/claude-agent-sdk": "^0.3.185",
+        "@mida/logger": "workspace:*",
+        "@mida/mattermost": "workspace:*",
+        "mongodb": "^7.3.0",
+        "mongoose": "^8.24.0",
+        "ws": "^8.21.0"
+    }
 }

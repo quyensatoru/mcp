@@ -1,1 +1,1 @@
-export const subAgents = {}
+export const subAgents = {};

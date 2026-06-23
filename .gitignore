@@ -7,3 +7,4 @@ data/mida-doc/index.json
 dist/
 *.log
 .DS_Store
+workspace

@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
-import { env } from "./env.config.js";
-import { logger } from "@mida/logger";
+import mongoose from 'mongoose';
+import { env } from './env.config.js';
+import { logger } from '@mida/logger';
 
 export const connectDB = async () => {
     try {
@@ -15,4 +15,4 @@ export const connectDB = async () => {
     } catch (error) {
         logger.error(`Error: ${error.toString()}`);
     }
-}
+};

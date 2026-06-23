@@ -1,3 +1,1 @@
-export const mcpServers = {
-
-}
+export const mcpServers = {};
