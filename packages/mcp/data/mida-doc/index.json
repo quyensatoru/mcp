@@ -1,0 +1,492 @@
+[
+  {
+    "slug": "advanced-rule-configuration-mida-docs",
+    "title": "Advanced Rule Configuration | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/rules-management/advanced-rule-configuration/#_top) Advanced Rule Configuration ![](https://docs.mida-app.io/_astro/Screenshot%202025-09-23%20at",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "ai-assistant-mida-docs",
+    "title": "AI Assistant | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/ai-assistant/#_top) AI Assistant AI Assistant is your built-in analytics companion inside MIDA. Instead of digging through dashboards, recordings,",
+    "crawledAt": "2026-06-22T03:19:05.842Z"
+  },
+  {
+    "slug": "analytics-insights-mida-docs",
+    "title": "Analytics Insights | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/analytics/analytics-insights/#_top) Analytics Insights **Using Analytics to Explore Customer Insights: A Step-by-Step Guide** [Section titled “Usi",
+    "crawledAt": "2026-06-22T03:19:05.843Z"
+  },
+  {
+    "slug": "api-data-export-mida-docs",
+    "title": "API Data Export | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/settings/api-data-export/#_top) API Data Export Overview [Section titled “Overview”](https://docs.mida-app.io/recordings/settings/api-data-export/",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "app-embedded-mida-docs",
+    "title": "App Embedded | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/overview/app-embeded/#_top) App Embedded First steps after installing the MIDA app: 1. **Enable Theme app extension:** Enable theme app extensio",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "area-maps-mida-docs",
+    "title": "Area maps | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/heatmaps/area-maps/#_top) Area maps Area Heatmap displays the total clicks for all the elements within a selected area. Unlike a click map, you ca",
+    "crawledAt": "2026-06-22T03:19:05.842Z"
+  },
+  {
+    "slug": "best-practices-for-analytics-with-mida-mida-docs",
+    "title": "Best Practices for Analytics with MIDA | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/analytics/best-practices-for-analytics-with-mida/#_top) Best Practices for Analytics with MIDA 1\\. Session Replays [Section titled “1. Session Rep",
+    "crawledAt": "2026-06-22T03:19:05.842Z"
+  },
+  {
+    "slug": "block-page-settings-mida-docs",
+    "title": "Block Page Settings | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/rules-management/block-page-settings/#_top) Block Page Settings This page can be fully customized in **Settings → Block Page Settings** to match",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "can-i-allow-staff-admin-even-if-their-location-is-blocked-mida-docs",
+    "title": "Can I allow staff/admin even if their location is blocked? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/faq/can-i-allow-staff-admin-even-if-their-location-is-blocked/#_top) Can I allow staff/admin even if their location is blocked? Yes, you can. ![",
+    "crawledAt": "2026-06-22T03:19:05.843Z"
+  },
+  {
+    "slug": "can-i-cancel-the-subscription-at-any-time-mida-docs",
+    "title": "Can I cancel the subscription at any time? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/faq/can-i-cancel-the-subscription-at-any-time/#_top) Can I cancel the subscription at any time? Yes — you can cancel or uninstall at any time. On",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "can-i-change-my-plan-mida-docs",
+    "title": "Can I change my plan? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/faq/can-i-change-my-plan/#_top) Can I change my plan? Yes — you can change your plan at any time. Go to the **MIDA Recording Replay, Heatmap** app",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "can-i-change-the-number-of-recordings-per-page-mida-docs",
+    "title": "Can I change the number of recordings per page? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/faq/can-i-change-the-number-of-recordings-per-page/#_top) Can I change the number of recordings per page? In the Session replays, you can change t",
+    "crawledAt": "2026-06-22T03:19:05.842Z"
+  },
+  {
+    "slug": "can-i-get-a-discount-on-special-cases-mida-docs",
+    "title": "Can I get a discount on special cases? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/faq/can-i-get-a-discount-on-special-cases/#_top) Can I get a discount on special cases? Yes, we currently do offer discounts on special cases so t",
+    "crawledAt": "2026-06-22T03:19:05.843Z"
+  },
+  {
+    "slug": "can-i-get-a-trial-for-the-app-mida-docs",
+    "title": "Can I get a trial for the app? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/faq/can-i-get-a-trial-for-the-app/#_top) Can I get a trial for the app? Yes, we offer **a free 7-day trial** for all of our paid plans. Simply go",
+    "crawledAt": "2026-06-22T03:19:05.843Z"
+  },
+  {
+    "slug": "can-i-request-a-refund-then-mida-docs",
+    "title": "Can I request a refund then? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/faq/can-i-request-a-refund-then/#_top) Can I request a refund then? You’re free to uninstall or downgrade at any time. Because MIDA keeps your pai",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "can-i-subscribe-to-an-annual-plan-mida-docs",
+    "title": "Can I subscribe to an annual plan? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/faq/can-i-subscribe-to-an-annual-plan/#_top) Can I subscribe to an annual plan? Currently, we do not offer an annual plan. However, we are working",
+    "crawledAt": "2026-06-22T03:19:05.842Z"
+  },
+  {
+    "slug": "can-i-watch-recordings-of-the-checkout-page-mida-docs",
+    "title": "Can I watch recordings of the Checkout page? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/faq/can-i-watch-recordings-of-the-checkout-page/#_top) Can I watch recordings of the Checkout page? Shopify’s privacy rules limit Session Replays",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "can-i-whitelist-an-entire-country-or-isp-mida-docs",
+    "title": "Can I whitelist an entire country or ISP? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/faq/can-i-whitelist-an-entire-country-or-isp/#_top) Can I whitelist an entire country or ISP? You can whitelist an entire country or ISP to allo",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "click-maps-mida-docs",
+    "title": "Click maps | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/heatmaps/click-maps/#_top) Click maps Click Heatmap helps you understand the critical content on the page. It also allows you to identify parts of",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "content-protection-mida-docs",
+    "title": "Content Protection | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/key-concepts/content-protection/#_top) Content Protection Why Content Protection Matters [Section titled “Why Content Protection Matters”](https",
+    "crawledAt": "2026-06-22T03:19:05.845Z"
+  },
+  {
+    "slug": "conversion-maps-mida-docs",
+    "title": "Conversion maps | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/heatmaps/conversion-maps/#_top) Conversion maps Conversion Heatmap helps you understand which areas on your page actually drive purchases or add-t",
+    "crawledAt": "2026-06-22T03:19:05.843Z"
+  },
+  {
+    "slug": "create-surveys-mida-docs",
+    "title": "Create Surveys | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/surveys/create-surveys/#_top) Create Surveys **To create a survey in MIDA, please follow these steps:** [Section titled “To create a survey in MID",
+    "crawledAt": "2026-06-22T03:19:05.842Z"
+  },
+  {
+    "slug": "creating-rules-mida-docs",
+    "title": "Creating Rules | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/rules-management/creating-rules/#_top) Creating Rules 1\\. Rule Type [Section titled “1. Rule Type”](https://docs.mida-app.io/fraud-filter/rules-",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "customer-segmentation-mida-docs",
+    "title": "Customer segmentation | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/advanced-filters/customer-segmentation/#_top) Customer segmentation We optimized 9 segments that our customers usually use Advanced filter for. 1.",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "delete-recordings-mida-docs",
+    "title": "Delete Recordings | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/session-replays/delete-recordings/#_top) Delete Recordings **To delete a single recording, follow these steps:** [Section titled “To delete a sing",
+    "crawledAt": "2026-06-22T03:19:05.843Z"
+  },
+  {
+    "slug": "do-rules-apply-instantly-after-i-save-them-mida-docs",
+    "title": "Do rules apply instantly after I save them? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/faq/do-rules-apply-instantly-after-i-save-them/#_top) Do rules apply instantly after I save them? Yes. The rules will be applied immediately aft",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "downgrade-cancel-uninstall-mida-docs",
+    "title": "Downgrade, Cancel & Uninstall | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/subscription-and-billing/downgrade-cancel-uninstall/#_top) Downgrade, Cancel & Uninstall If you need to reduce your plan or leave MIDA, here’s exa",
+    "crawledAt": "2026-06-22T03:19:05.843Z"
+  },
+  {
+    "slug": "dynamic-heatmap-mida-docs",
+    "title": "Dynamic Heatmap | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/heatmaps/dynamic-heatmap/#_top) Dynamic Heatmap Dynamic Heatmap lets you view heatmap data directly on your live storefront instead of on a static",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "dynamic-heatmap-vs-standard-heatmap-mida-docs",
+    "title": "Dynamic Heatmap vs Standard Heatmap | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/heatmaps/dynamic-heatmap-vs-standard-heatmap/#_top) Dynamic Heatmap vs Standard Heatmap MIDA offers two ways to view your heatmap data: the **Stan",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "enable-app-embed-mida-docs",
+    "title": "Enable app embed | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/enable-app-embed/#_top) Enable app embed You need to enable app embed block for in-app features can work properly. ![](https://docs.mida-app.io/_a",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "error-insight-mida-docs",
+    "title": "Error Insight | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/analytics/error-insight/#_top) Error Insight **Using Error Insight to Find Storefront Issues That Hurt Revenue: A Step-by-Step Guide** [Section ti",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "export-recordings-mida-docs",
+    "title": "Export Recordings | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/session-replays/export-recordings/#_top) Export Recordings **To export all recordings, follow these steps:** [Section titled “To export all record",
+    "crawledAt": "2026-06-22T03:19:05.845Z"
+  },
+  {
+    "slug": "exporting-analytics-visitor-logs-mida-docs",
+    "title": "Exporting Analytics & Visitor Logs | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/analytics/exporting-analytics-and-visitor-logs/#_top) Exporting Analytics & Visitor Logs - **Visitor export:** ``` Allow exporting visitors to a",
+    "crawledAt": "2026-06-22T03:19:05.843Z"
+  },
+  {
+    "slug": "filters-mida-docs",
+    "title": "Filters | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/advanced-filters/advanced-filters/#_top) Filters The Advanced filters feature allows you to filter sessions by specific criteria for a more detail",
+    "crawledAt": "2026-06-22T03:19:05.842Z"
+  },
+  {
+    "slug": "fraud-orders-mida-docs",
+    "title": "Fraud Orders | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/analytics/fraud-orders/#_top) Fraud Orders ![](https://docs.mida-app.io/_astro/image%20(3).D3bBSoOW_Z1N9Kkc.webp) 1\\. Orders Table [Section titl",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "general-settings-mida-docs",
+    "title": "General Settings | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/settings/settings/#_top) General Settings The **Settings** page allows you to adjust replay settings for an optimal viewing experience, exclude re",
+    "crawledAt": "2026-06-22T03:19:05.843Z"
+  },
+  {
+    "slug": "how-can-i-block-my-team-s-or-colleague-s-ip-addresses-from-being-recorded-mida-d",
+    "title": "How can I block my team's or colleague's IP addresses from being recorded? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/faq/how-can-i-block-my-teams-or-colleagues-ip-addresses-from-being-recorded/#_top) How can I block my team's or colleague's IP addresses from bein",
+    "crawledAt": "2026-06-22T03:19:05.845Z"
+  },
+  {
+    "slug": "how-does-mida-detect-vpns-and-proxies-mida-docs",
+    "title": "How does MIDA detect VPNs and proxies? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/faq/how-does-mida-detect-vpns-and-proxies/#_top) How does MIDA detect VPNs and proxies? MIDA detects VPNs and proxies by looking up IP informati",
+    "crawledAt": "2026-06-22T03:19:05.843Z"
+  },
+  {
+    "slug": "how-does-the-smart-device-blocking-work-mida-docs",
+    "title": "How does the 'Smart Device Blocking' work? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/faq/how-does-the-smart-device-blocking-work/#_top) How does the \"Smart Device Blocking\" work? The **Smart Device Blocking** feature works by det",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "how-is-my-session-limit-calculated-mida-docs",
+    "title": "How is my session limit calculated? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/faq/how-is-my-session-limit-calculated/#_top) How is my session limit calculated? A **session recording** captures a “video” of a user’s real-time",
+    "crawledAt": "2026-06-22T03:19:05.842Z"
+  },
+  {
+    "slug": "how-much-does-it-cost-to-use-the-app-mida-docs",
+    "title": "How much does it cost to use the app? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/faq/how-much-does-it-cost-to-use-the-app/#_top) How much does it cost to use the app? Welcome to MIDA! We offer a range of pricing plans tailored",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "how-to-customize-block-page-mida-docs",
+    "title": "How to Customize Block Page | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/rules-management/how-to-customize-block-page/#_top) How to Customize Block Page How to Customize the Block Page: Go to **Settings** \\> **Block P",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "how-to-preview-the-block-screen-mida-docs",
+    "title": "How to Preview the Block Screen? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/faq/how-to-preview-the-block-screen/#_top) How to Preview the Block Screen? MIDA Fraud Filter, IP Blocker allows you to preview the block experi",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "how-to-upgrade-mida-docs",
+    "title": "How to Upgrade | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/subscription-and-billing/how-to-upgrade/#_top) How to Upgrade Upgrading your plan gives you immediate access to higher session limits and more adv",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "ip-not-detected-correctly-what-should-i-do-mida-docs",
+    "title": "IP not detected correctly – what should I do? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/faq/ip-not-detected-correctly-what-should-i-do/#_top) IP not detected correctly – what should I do? Normally, the IP will be detected correctly.",
+    "crawledAt": "2026-06-22T03:19:05.842Z"
+  },
+  {
+    "slug": "key-benefits-of-mida-fraud-ip-blocker-mida-docs",
+    "title": "Key Benefits of MIDA Fraud IP Blocker | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/overview/benefits/#_top) Key Benefits of MIDA Fraud IP Blocker Enhanced Security [Section titled “Enhanced Security”](https://docs.mida-app.io/f",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "manage-visitors-mida-docs",
+    "title": "Manage Visitors | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/visitors/manage-visitors/#_top) Manage Visitors **To manage visitor(s), follow these steps:** [Section titled “To manage visitor(s), follow these",
+    "crawledAt": "2026-06-22T03:19:05.842Z"
+  },
+  {
+    "slug": "move-maps-mida-docs",
+    "title": "Move maps | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/heatmaps/move-maps/#_top) Move maps Move Heatmap helps you understand where a person moved or hovered their cursor on their screen. These types of",
+    "crawledAt": "2026-06-22T03:19:05.842Z"
+  },
+  {
+    "slug": "overall-workflow-mida-docs",
+    "title": "Overall Workflow | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/overview/overall-workflow/#_top) Overall Workflow 1\\. Incoming Request [Section titled “1. Incoming Request”](https://docs.mida-app.io/fraud-fil",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "pricing-plans-mida-docs",
+    "title": "Pricing Plans | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/subscription-and-billing/pricing-plans/#_top) Pricing Plans MIDA offers four plans built around how much traffic you have and how deeply you want",
+    "crawledAt": "2026-06-22T03:19:05.843Z"
+  },
+  {
+    "slug": "protecting-storefront-content-mida-docs",
+    "title": "Protecting Storefront Content | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/content-protection/protecting-storefront-content/#_top) Protecting Storefront Content ![](https://docs.mida-app.io/_astro/Screenshot%202025-09-2",
+    "crawledAt": "2026-06-22T03:19:05.845Z"
+  },
+  {
+    "slug": "revenue-heatmap-mida-docs",
+    "title": "Revenue Heatmap | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/heatmaps/revenue-maps/#_top) Revenue Heatmap Revenue Heatmap helps you identify which elements on your page are actually generating revenue. Inste",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "rule-priority-execution-logic-whitelist-vs-blacklist-vs-vpn-mida-docs",
+    "title": "Rule Priority & Execution Logic (Whitelist vs Blacklist vs VPN) | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/rules-management/rule-priority-and-execution-logic-whitelist-vs-blacklist-vs-vpn/#_top) Rule Priority & Execution Logic (Whitelist vs Blacklist",
+    "crawledAt": "2026-06-22T03:19:05.843Z"
+  },
+  {
+    "slug": "scroll-maps-mida-docs",
+    "title": "Scroll maps | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/heatmaps/scroll-maps/#_top) Scroll maps Scroll Heatmap helps you determine the ideal page length for maximum conversions and show how far your use",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "search-insight-mida-docs",
+    "title": "Search Insight | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/analytics/search-insight/#_top) Search Insight **Using Search Insight to Understand On-site Search Behavior: A Step-by-Step Guide** [Section title",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "share-heatmaps-mida-docs",
+    "title": "Share Heatmaps | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/heatmaps/share-heatmaps/#_top) Share Heatmaps **To share heatmap(s) from MIDA, follow these steps:** **Step 1:** Go to the “ **Heatmaps**” section",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "understanding-risk-scores-mida-docs",
+    "title": "Understanding Risk Scores | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/analytics/understanding-risk-scores/#_top) Understanding Risk Scores **IP risk score:** [Section titled “IP risk score:”](https://docs.mida-app.",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "view-heatmaps-mida-docs",
+    "title": "View Heatmaps | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/heatmaps/view-heatmaps/#_top) View Heatmaps **What is a Heatmap?** A Heatmap (or Heat map) is a visualization tool that makes it easy to analyze a",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "view-recordings-mida-docs",
+    "title": "View Recordings | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/session-replays/view-recordings/#_top) View Recordings **To view a recording, follow these steps:** [Section titled “To view a recording, follow t",
+    "crawledAt": "2026-06-22T03:19:05.843Z"
+  },
+  {
+    "slug": "view-survey-analytics-mida-docs",
+    "title": "View Survey Analytics | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/surveys/view-survey-analytics/#_top) View Survey Analytics **To view analytics of a survey in MIDA, please follow these steps:** [Section titled “",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "visitor-analytics-mida-docs",
+    "title": "Visitor Analytics | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/analytics/visitor-analytics/#_top) Visitor Analytics This helps you understand traffic patterns, detect suspicious activity, and take action. 1\\",
+    "crawledAt": "2026-06-22T03:19:05.845Z"
+  },
+  {
+    "slug": "welcome-to-mida-docs-mida-docs",
+    "title": "Welcome to MIDA Docs | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/advanced-filters/advanced-filters#_top) ![](https://docs.mida-app.io/_astro/logo.BlrY5ZvR_Z56t2y.webp) Welcome to MIDA Docs Everything you need to set up, co",
+    "crawledAt": "2026-06-22T03:19:05.845Z"
+  },
+  {
+    "slug": "welcome-to-mida-fraud-mida-docs",
+    "title": "Welcome to MIDA Fraud | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/#_top) Welcome to MIDA Fraud MIDA Fraud IP Blocker is your all-in-one **access control and fraud prevention app** for Shopify store. We help you",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "welcome-to-mida-heatmap-mida-docs",
+    "title": "Welcome to MIDA Heatmap | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/#_top) Welcome to MIDA Heatmap MIDA is a Shopify conversion optimization platform that helps you understand how visitors interact with your store",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "what-happens-if-a-customer-is-incorrectly-blocked-mida-docs",
+    "title": "What happens if a customer is incorrectly blocked? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/faq/what-happens-if-a-customer-is-incorrectly-blocked/#_top) What happens if a customer is incorrectly blocked? If a customer is blocked by mist",
+    "crawledAt": "2026-06-22T03:19:05.843Z"
+  },
+  {
+    "slug": "what-is-a-quick-back-mida-docs",
+    "title": "What is a quick back? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/recordings/faq/what-is-a-quick-back/#_top) What is a quick back? Quick back is created when a user navigated to your online store then quickly returned to th",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  },
+  {
+    "slug": "what-is-the-difference-between-global-rules-and-page-specific-rules-mida-docs",
+    "title": "What is the difference between global rules and page-specific rules? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/faq/what-is-the-difference-between-global-rules-and-page-specific-rules/#_top) What is the difference between global rules and page-specific rul",
+    "crawledAt": "2026-06-22T03:19:05.842Z"
+  },
+  {
+    "slug": "what-is-user-agent-mida-docs",
+    "title": "What is user agent? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/faq/what-is-user-agent/#_top) What is user agent? A user agent is a text string sent by a browser, bot, or automation tool when it accesses your",
+    "crawledAt": "2026-06-22T03:19:05.842Z"
+  },
+  {
+    "slug": "whitelist-blacklist-rules-mida-docs",
+    "title": "Whitelist & Blacklist Rules | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/key-concepts/whitelist-blacklist-rules/#_top) Whitelist & Blacklist Rules 1\\. What is a Rule? [Section titled “1. What is a Rule?”](https://docs",
+    "crawledAt": "2026-06-22T03:19:05.842Z"
+  },
+  {
+    "slug": "will-the-app-slow-down-my-store-mida-docs",
+    "title": "Will the app slow down my store? | MIDA Docs",
+    "url": "",
+    "excerpt": "[Skip to content](https://docs.mida-app.io/fraud-filter/faq/will-the-app-slow-down-my-store/#_top) Will the app slow down my store? No, the app is designed to be lightweight and optimized for performa",
+    "crawledAt": "2026-06-22T03:19:05.844Z"
+  }
+]
