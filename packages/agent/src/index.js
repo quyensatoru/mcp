@@ -5,6 +5,7 @@ import { subAgents as agents } from "./config/subagent.config.js";
 import express from "express"
 import { logger } from "@mida/logger";
 import { connectDB } from "./config/mongo.config.js";
+import { connectMattermost } from "./channel/mattermost.channel.js";
 
 const createClaudeAgentSdk = (prompt, sessionId) => {
     return query({
@@ -32,9 +33,10 @@ const bootstrap = () => {
     const app = express()
 
     connectDB()
+    connectMattermost()
 
     app.listen(env.PORT, () => {
-        logger.info(`app listening at http://localhost:${env.PORT}`)
+        logger.info(`App listening at http://localhost:${env.PORT}`)
     })
 }
 
