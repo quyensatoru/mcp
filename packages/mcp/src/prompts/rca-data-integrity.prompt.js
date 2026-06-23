@@ -34,8 +34,11 @@ mongo_replica_lag("${domain}")
 ## Bước 2: Missing report từ Recorder
 \`\`\`
 mongo_missing_report("${domain}")
-→ sessionMissing.count > 0 = recorder consumer có lỗi
-→ analyticMissing.count > 0 = analytic worker có lỗi
+→ sessionmissings.count > 0 = shop đã HẾT QUOTA session_limit của plan
+  (đây là TÍNH NĂNG thiết kế — khi hết quota, session mới đẩy vào đây thay vì ghi vào DB)
+  → KHÔNG phải lỗi consumer. Fix = nâng plan.
+  → Đối chiếu với mongo_resolve_shop để xem subscription_info.session_limit.
+→ analyticMissing.count > 0 = analytic worker có lỗi (đây mới là vấn đề kỹ thuật)
 \`\`\`
 
 ## Bước 3: Compare cụ thể
@@ -63,9 +66,9 @@ mongo_get_analytic("${domain}", dateFrom="<date>", dateTo="<date>")
 | Triệu chứng | Root Cause | Fix |
 |---|---|---|
 | lag > 5min, no missing | Queue chậm (backpressure) | Scale up consumer workers |
-| sessionMissing cao | Consumer down/crashed | Restart recorder service |
+| sessionmissings cao | Shop hết quota session_limit (tính năng quota, KHÔNG phải lỗi) | Nâng plan cho shop |
 | STALE docs | Partial consumer failure | Check consumer retry logic |
-| analyticMissing | Analytic aggregation worker lỗi | Check loki_search_errors(app="sama-api", level="error") |`,
+| analyticMissing cao | Analytic aggregation worker lỗi | Check loki_search_errors(app="sama-api", level="error") |`,
                     },
                 },
             ],

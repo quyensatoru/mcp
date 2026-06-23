@@ -54,13 +54,18 @@ mongo_resolve_shop(domain)
 ### "Dữ liệu lệch / Recorder thiếu"
 
 ```
+mongo_missing_report(domain)
+├─ sessionmissings.count > 0
+│   → ⚠️ ĐÂY LÀ TÍNH NĂNG QUOTA (không phải lỗi)
+│   → Khi shop vượt session_limit của plan, session mới đẩy vào sessionmissings
+│   → Fix: nâng plan. Xem subscription_info.session_limit qua mongo_resolve_shop
+└─ sessionmissings = 0 → tiếp tục kiểm tra kỹ thuật:
+
 mongo_replica_lag(domain)
-├─ lag > 5min → queue nghẽn → loki_queue_health
-└─ lag OK → mongo_missing_report(domain)
-             ├─ sessionMissing > 0 → consumer recorder chết/restart
-             └─ OK → mongo_compare_replica(domain, entity, id)
-                      ├─ MISSING → consumer drop → loki_queue_health(recorder-backup)
-                      └─ STALE → partial failure → check consumer retry logic
+├─ lag > 5min → queue nghẽn → loki_queue_health (đây mới là lỗi thật)
+└─ lag OK → mongo_compare_replica(domain, entity, id)
+             ├─ MISSING → consumer drop → loki_queue_health(recorder-backup)
+             └─ STALE → partial failure → check consumer retry logic
 ```
 
 ### "Số liệu analytics sai"

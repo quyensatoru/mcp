@@ -53,15 +53,19 @@ loki_search_errors(app="sama-api", shop="${domain}", start="${timeRange ?? 'now-
 → Tìm lỗi liên quan đến shop này
 \`\`\`
 
-### 5. Recorder integrity
+### 5. Quota check (nếu khách phàn nàn "session không được ghi")
 \`\`\`
 mongo_missing_report("${domain}")
-→ sessionMissing > 0 → recorder consumer drop data
+→ sessionmissings là TÍNH NĂNG QUOTA: khi shop vượt session_limit của plan,
+  session mới bị đẩy vào đây thay vì ghi vào DB (thiết kế có chủ đích).
+→ sessionMissing.count cao → shop đã HẾT QUOTA, không phải lỗi kỹ thuật.
+→ Fix: nâng plan hoặc giải thích cho shop biết đây là giới hạn của gói hiện tại.
+
 mongo_replica_lag("${domain}")
-→ lag > 5min → queue nghẽn
+→ lag > 5min → queue nghẽn (vấn đề kỹ thuật thật sự)
 \`\`\`
 
-### 6. Queue health (nếu phát hiện drift/missing)
+### 6. Queue health (chỉ khi có lag bất thường, KHÔNG phải do quota)
 \`\`\`
 loki_queue_health(channel="recorder-backup", start="${timeRange ?? 'now-2h'}")
 → Tìm: nack, reject, connection drop, no consumer
@@ -73,8 +77,8 @@ loki_queue_health(channel="recorder-backup", start="${timeRange ?? 'now-2h'}")
 - Script tag không tồn tại → **Fix**: Cài lại app embed trong Shopify Admin
 - 0 PageView trong DB → **Root cause**: ingest API không nhận events (kiểm tra loki_trace theo requestId từ storefront)
 - 0 Event → **Root cause**: recording script lỗi hoặc event consumer drop (xem loki_queue_health)
-- sessionMissing cao → **Root cause**: recorder consumer down
-- lag > 5min → **Root cause**: queue nghẽn (số worker không đủ)`,
+- sessionmissings cao → **Root cause**: shop hết quota session_limit của plan — nâng plan, KHÔNG phải lỗi consumer
+- lag > 5min → **Root cause**: queue nghẽn (số worker không đủ) — đây mới là lỗi kỹ thuật`,
                     },
                 },
             ],
