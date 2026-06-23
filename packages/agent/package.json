@@ -5,7 +5,11 @@
     "main": "src/index.js",
     "type": "module",
     "scripts": {
-        "dev": "node src/index.js"
+        "prestart": "node scripts/sync-workspace.js",
+        "sync": "node scripts/sync-workspace.js",
+        "predev": "node scripts/sync-workspace.js",
+        "dev": "node src/index.js",
+        "start": "node src/index.js"
     },
     "keywords": [],
     "author": "",

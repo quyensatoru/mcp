@@ -1,6 +1,8 @@
+import { logger } from "@mida/logger";
+
 const hooks = {
     SessionStart: (input) => {
-        console.log('[HOOK] SessionStart — cwd:', input.cwd, 'model:', input.model);
+        logger.log('[HOOK] SessionStart — cwd:', input.cwd, 'model:', input.model);
         // save session to storage
 
         return {};
@@ -10,7 +12,7 @@ const hooks = {
         if (input.tool_name === 'Bash') {
             const cmd = input.tool_input?.command ?? '';
             if (/rm\s+-rf/.test(cmd)) {
-                console.warn('[HOOK] Blocked dangerous command:', cmd);
+                logger.warn('[HOOK] Blocked dangerous command:', cmd);
                 return { permissionDecision: 'deny', reason: 'rm -rf is not allowed' };
             }
         }
@@ -18,16 +20,16 @@ const hooks = {
     },
 
     PostToolUse: (input) => {
-        console.log(`[HOOK] PostToolUse: ${input.tool_name} →`, input.tool_output?.slice?.(0, 120));
+        logger.log(`[HOOK] PostToolUse: ${input.tool_name} →`, input.tool_output?.slice?.(0, 120));
         return {};
     },
 
     PermissionRequest: (input) => {
         const { tool_name, tool_input } = input;
-        console.log(
+        logger.log(
             `[HOOK] Permission request for '${tool_name}':`,
             JSON.stringify(tool_input).slice(0, 80),
         );
-        return { permissionDecision: 'allow' }; // auto-allow for this demo
+        return { permissionDecision: 'allow' };
     },
 };

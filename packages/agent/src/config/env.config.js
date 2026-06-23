@@ -22,6 +22,10 @@ const envSchema = z.object({
 
     MONGO_URI: z.string().optional(),
     WORK_DIR: z.string().optional(),
+
+    GITLAB_TOKEN: z.string().optional(),
+    GITLAB_URL: z.string().url().default('https://gitlab.com'),
+    GITLAB_PROJECT_ID: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
