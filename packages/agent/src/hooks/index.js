@@ -1,6 +1,6 @@
 import { logger } from "@mida/logger";
 
-const hooks = {
+export const hooks = {
     SessionStart: (input) => {
         logger.log('[HOOK] SessionStart — cwd:', input.cwd, 'model:', input.model);
         // save session to storage
