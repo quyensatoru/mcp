@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import { getModel } from '../../services/shard-resolver.service.js';
+import { Db } from '../../config/db.config.js';
 
-const schema = new mongoose.Schema(
+const PageSchema = new mongoose.Schema(
     {
         address: String,
         title: String,
@@ -12,4 +12,7 @@ const schema = new mongoose.Schema(
     { versionKey: false },
 );
 
-export const getPageModel = (conn) => getModel(conn, 'Page', schema);
+export const PageModels = {
+    1: Db.ApiV1.model('Page', PageSchema),
+    2: Db.ApiV2.model('Page', PageSchema),
+};

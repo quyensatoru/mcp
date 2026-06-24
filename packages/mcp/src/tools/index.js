@@ -1,17 +1,19 @@
 import { registerPingTool } from './ping.tool.js';
+import { registerShopTool } from './shop.tool.js';
+import { registerAnalyticsTools } from './analytics.tool.js';
+import { registerSessionTools } from './session.tool.js';
+import { registerHeatmapTools } from './heatmap.tool.js';
+import { registerRecordingTools } from './recording.tool.js';
+import { registerReplayTools } from './replay.tool.js';
 import { registerDocsTool } from './docs.tool.js';
-import { registerLokiTools } from './loki.tool.js';
-import { registerMongoTools } from './mongo.tool.js';
-import { registerMongoPipelineTools } from './mongo-pipeline.tool.js';
-import { registerMongoIntegrityTools } from './mongo-integrity.tool.js';
-import { registerRrwebTools } from './rrweb.tool.js';
 
 export function registerAllTools(server) {
     registerPingTool(server);
+    registerShopTool(server);
+    registerAnalyticsTools(server);
+    registerSessionTools(server);
+    registerHeatmapTools(server);
+    registerRecordingTools(server);
+    registerReplayTools(server);
     registerDocsTool(server);
-    // registerLokiTools(server);
-    registerMongoTools(server);
-    registerMongoPipelineTools(server);
-    registerMongoIntegrityTools(server);
-    registerRrwebTools(server);
 }

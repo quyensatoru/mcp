@@ -1,0 +1,52 @@
+import { z } from 'zod';
+import { resolveProxy } from '../services/proxy.service.js';
+import { ShopService } from '../services/shop.service.js';
+import { cacheKey, withCache } from '../helpers/redis.helper.js';
+import { textContent, errorContent, pct } from '../helpers/format.helper.js';
+import { wrap } from '../helpers/tool.helper.js';
+
+const TTL = 120;
+
+function formatShopOverview(shop, proxy) {
+    const sub = shop.subscription_info ?? {};
+    const started = shop.started ?? {};
+    const lines = [
+        `Domain: ${shop.domain}`,
+        `Shard: ${proxy}`,
+        `Status: ${shop.status ? 'active' : 'inactive'}`,
+        `Plan: ${shop.plan_code ?? '—'} (${sub.title ?? '—'})`,
+        `Sessions: ${shop.session_count ?? 0} / ${sub.session_limit ?? '—'} (${pct(shop.session_count ?? 0, sub.session_limit)})`,
+        `AI session limit: ${sub.ai_session_limit ?? '—'} · storage: ${sub.storage_days ?? '—'} days`,
+        `Embed block: ${shop.embed_block ? 'ON' : 'OFF'} · pixel_id: ${shop.pixel_id ?? '—'}`,
+        `Daily quota: ${shop.daily_quota_enabled ? `${shop.daily_used_quota_limit ?? 0} / ${shop.quota_limit_per_day ?? '—'}` : 'disabled'}`,
+        `Onboarding: visitor=${started.view_visitor ? '✓' : '✗'} heatmap=${started.view_heatmap ? '✓' : '✗'} completed=${started.completed ? '✓' : '✗'}`,
+        `Country: ${shop.country ?? '—'} · Shopify plan: ${shop.shopify_plan ?? '—'}`,
+    ];
+    if (shop.uninstall_app_date)
+        lines.push(`⚠️ Uninstalled: ${new Date(shop.uninstall_app_date).toISOString()}`);
+    return lines.join('\n');
+}
+
+export function registerShopTool(server) {
+    server.registerTool(
+        'shop_overview',
+        {
+            title: 'Shop Overview',
+            description:
+                'Bước 0 cho mọi truy vấn theo shop: resolve shard + đọc thông tin shop (status, plan, quota, embed, onboarding). Access token bị loại bỏ.',
+            inputSchema: z.object({
+                domain: z.string().describe('Shopify domain, vd "store.myshopify.com"'),
+            }),
+        },
+        wrap('shop_overview', async ({ domain }) => {
+            const data = await withCache(cacheKey('shop_overview', { domain }), TTL, async () => {
+                const proxy = await resolveProxy(domain);
+                const shop = await ShopService.findByDomain(proxy, domain);
+                return { proxy, shop };
+            });
+            if (!data.shop)
+                return errorContent(`Shop không tồn tại trong api: ${domain}`, 'Kiểm tra lại domain.');
+            return textContent(formatShopOverview(data.shop, data.proxy));
+        }),
+    );
+}

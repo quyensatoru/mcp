@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import { getModel } from '../../services/shard-resolver.service.js';
+import { Db } from '../../config/db.config.js';
 
-const schema = new mongoose.Schema(
+const SessionSchema = new mongoose.Schema(
     {
         key: String,
         viewed: Boolean,
@@ -44,4 +44,7 @@ const schema = new mongoose.Schema(
     { timestamps: true, versionKey: false },
 );
 
-export const getSessionModel = (conn) => getModel(conn, 'Session', schema);
+export const SessionModels = {
+    1: Db.ApiV1.model('Session', SessionSchema),
+    2: Db.ApiV2.model('Session', SessionSchema),
+};

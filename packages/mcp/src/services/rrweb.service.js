@@ -1,7 +1,7 @@
+/* global window */
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { withPage } from '../lib/playwright.js';
-import { logger } from '@mida/logger';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const HARNESS_PATH = join(__dirname, '../lib/rrweb-harness.html');

@@ -1,32 +1,43 @@
 import { describe, it, expect } from 'vitest';
-import { okContent, errorContent, toText } from '../../src/helpers/format.helper.js';
+import {
+    pct,
+    redact,
+    abbreviate,
+    maskEmail,
+    textContent,
+    errorContent,
+} from '../../src/helpers/format.helper.js';
 
 describe('format.helper', () => {
-    it('okContent wraps data as text content', () => {
-        const result = okContent({ foo: 'bar' });
-        expect(result.content[0].type).toBe('text');
-        expect(result.content[0].text).toContain('foo');
+    it('pct computes percentage, — when denom 0', () => {
+        expect(pct(45, 100)).toBe('45.0%');
+        expect(pct(1, 0)).toBe('—');
     });
 
-    it('okContent adds label heading', () => {
-        const result = okContent({ x: 1 }, { label: 'Test Label' });
-        expect(result.content[0].text).toMatch(/### Test Label/);
+    it('redact masks secret keys deeply', () => {
+        const r = redact({ access_token: 'x', nested: { token: 'y', ok: 1 } });
+        expect(r.access_token).toBe('[REDACTED]');
+        expect(r.nested.token).toBe('[REDACTED]');
+        expect(r.nested.ok).toBe(1);
     });
 
-    it('okContent redacts access_token', () => {
-        const result = okContent({ access_token: 'secret123', name: 'shop' });
-        expect(result.content[0].text).not.toContain('secret123');
-        expect(result.content[0].text).toContain('[REDACTED]');
+    it('abbreviate truncates to max length', () => {
+        expect(abbreviate('a'.repeat(100), 10)).toHaveLength(10);
+        expect(abbreviate('short', 10)).toBe('short');
     });
 
-    it('errorContent sets isError=true', () => {
-        const result = errorContent('Something broke', 'Try this fix');
-        expect(result.isError).toBe(true);
-        expect(result.content[0].text).toContain('Something broke');
-        expect(result.content[0].text).toContain('Try this fix');
+    it('maskEmail masks local part', () => {
+        expect(maskEmail('john@store.com')).toBe('jo***@store.com');
     });
 
-    it('toText serialises JSON', () => {
-        expect(toText({ a: 1 })).toContain('"a": 1');
+    it('textContent wraps plain text', () => {
+        expect(textContent('hi').content[0]).toEqual({ type: 'text', text: 'hi' });
+    });
+
+    it('errorContent sets isError and includes hint', () => {
+        const e = errorContent('broke', 'fix it');
+        expect(e.isError).toBe(true);
+        expect(e.content[0].text).toContain('broke');
+        expect(e.content[0].text).toContain('fix it');
     });
 });

@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import { getModel } from '../../services/shard-resolver.service.js';
+import { Db } from '../../config/db.config.js';
 
-const schema = new mongoose.Schema(
+const SessionMissingSchema = new mongoose.Schema(
     {
         key: String,
         os: String,
@@ -18,4 +18,7 @@ const schema = new mongoose.Schema(
     { timestamps: true, versionKey: false, collection: 'sessionmissings' },
 );
 
-export const getSessionMissingModel = (conn) => getModel(conn, 'SessionMissing', schema);
+export const SessionMissingModels = {
+    1: Db.RecorderV1.model('SessionMissing', SessionMissingSchema),
+    2: Db.RecorderV2.model('SessionMissing', SessionMissingSchema),
+};

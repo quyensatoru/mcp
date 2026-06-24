@@ -1,29 +1,26 @@
 import { describe, it, expect } from 'vitest';
-import { parseTime, assertSafePipeline } from '../../src/helpers/validate.helper.js';
+import { parseDate, dateRangeFilter } from '../../src/helpers/validate.helper.js';
 
 describe('validate.helper', () => {
-    it('parseTime parses ISO string', () => {
-        const result = parseTime('2024-01-15T00:00:00Z');
-        expect(result).toBeInstanceOf(Date);
+    it('parseDate parses YYYY-MM-DD', () => {
+        expect(parseDate('2024-01-15')).toBeInstanceOf(Date);
     });
 
-    it('parseTime parses relative "now-2h"', () => {
-        const result = parseTime('now-2h');
-        expect(result).toBeInstanceOf(Date);
-        const diffMs = Date.now() - result.getTime();
-        expect(diffMs).toBeGreaterThan(7190000);
-        expect(diffMs).toBeLessThan(7210000);
+    it('parseDate returns null for empty', () => {
+        expect(parseDate(null)).toBeNull();
     });
 
-    it('assertSafePipeline throws on $out', () => {
-        expect(() => assertSafePipeline([{ $out: 'col' }])).toThrow();
+    it('parseDate throws on invalid', () => {
+        expect(() => parseDate('not-a-date')).toThrow();
     });
 
-    it('assertSafePipeline throws on $merge', () => {
-        expect(() => assertSafePipeline([{ $merge: {} }])).toThrow();
+    it('dateRangeFilter builds $gte/$lte', () => {
+        const r = dateRangeFilter('2024-01-01', '2024-01-31');
+        expect(r.$gte).toBeInstanceOf(Date);
+        expect(r.$lte).toBeInstanceOf(Date);
     });
 
-    it('assertSafePipeline allows $match and $group', () => {
-        expect(() => assertSafePipeline([{ $match: {} }, { $group: { _id: '$x' } }])).not.toThrow();
+    it('dateRangeFilter returns null when empty', () => {
+        expect(dateRangeFilter()).toBeNull();
     });
 });

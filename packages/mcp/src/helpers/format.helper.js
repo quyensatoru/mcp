@@ -1,38 +1,40 @@
-// Rút gọn kết quả để tiết kiệm token khi trả về AI
+// Primitives cho output plain-text gửi AI. Domain formatter co-located trong từng tool.
 
-const REDACT_FIELDS = new Set(['access_token', 'password', 'secret', 'token']);
+const SECRET_KEYS = new Set(['access_token', 'accessToken', 'password', 'secret', 'token', 'jwt']);
 
-function redact(obj) {
-    if (!obj || typeof obj !== 'object') return obj;
-    if (Array.isArray(obj)) return obj.map(redact);
-    return Object.fromEntries(
-        Object.entries(obj).map(([k, v]) => [k, REDACT_FIELDS.has(k) ? '[REDACTED]' : redact(v)]),
-    );
-}
-
-export function formatDocs(docs, { maxItems = 50, pick } = {}) {
-    const items = docs.slice(0, maxItems);
-    const result = pick ? items.map((d) => pickFields(d, pick)) : items;
-    return redact(result);
-}
-
-export function pickFields(obj, fields) {
-    if (!fields?.length) return obj;
-    return Object.fromEntries(fields.filter((f) => f in obj).map((f) => [f, obj[f]]));
-}
-
-export function summarize(docs, groupBy) {
-    if (!groupBy) return { count: docs.length };
-    const groups = {};
-    for (const doc of docs) {
-        const key = String(doc[groupBy] ?? 'unknown');
-        groups[key] = (groups[key] ?? 0) + 1;
+export function redact(value) {
+    if (Array.isArray(value)) return value.map(redact);
+    if (value && typeof value === 'object') {
+        return Object.fromEntries(
+            Object.entries(value).map(([k, v]) => [
+                k,
+                SECRET_KEYS.has(k) ? '[REDACTED]' : redact(v),
+            ]),
+        );
     }
-    return { count: docs.length, by: groups };
+    return value;
 }
 
-export function toText(data) {
-    return JSON.stringify(data, null, 2);
+export const pct = (num, denom) => (denom ? `${((num / denom) * 100).toFixed(1)}%` : '—');
+
+export function abbreviate(str, max = 80) {
+    if (!str) return '';
+    return str.length > max ? `${str.slice(0, max - 1)}…` : str;
+}
+
+export function maskEmail(email) {
+    if (!email || !email.includes('@')) return email ?? '';
+    const [name, host] = email.split('@');
+    return `${name.slice(0, 2)}***@${host}`;
+}
+
+// Gom title + các dòng con (thụt lề) thành 1 block text.
+export function section(title, lines) {
+    return [title, ...lines.filter(Boolean).map((l) => `  ${l}`)].join('\n');
+}
+
+export function textContent(text) {
+    return { content: [{ type: 'text', text }] };
 }
 
 export function errorContent(message, hint) {
@@ -40,9 +42,4 @@ export function errorContent(message, hint) {
         isError: true,
         content: [{ type: 'text', text: hint ? `${message}\n\nGợi ý: ${hint}` : message }],
     };
-}
-
-export function okContent(data, { label } = {}) {
-    const text = typeof data === 'string' ? data : toText(redact(data));
-    return { content: [{ type: 'text', text: label ? `### ${label}\n\n${text}` : text }] };
 }

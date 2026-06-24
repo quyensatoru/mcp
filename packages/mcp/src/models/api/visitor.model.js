@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import { getModel } from '../../services/shard-resolver.service.js';
+import { Db } from '../../config/db.config.js';
 
-const schema = new mongoose.Schema(
+const VisitorSchema = new mongoose.Schema(
     {
         os: String,
         device: String,
@@ -14,4 +14,7 @@ const schema = new mongoose.Schema(
     { timestamps: true, versionKey: false },
 );
 
-export const getVisitorModel = (conn) => getModel(conn, 'Visitor', schema);
+export const VisitorModels = {
+    1: Db.ApiV1.model('Visitor', VisitorSchema),
+    2: Db.ApiV2.model('Visitor', VisitorSchema),
+};

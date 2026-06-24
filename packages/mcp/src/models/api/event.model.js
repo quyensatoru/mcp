@@ -1,19 +1,19 @@
 import mongoose from 'mongoose';
-import { getModel } from '../../services/shard-resolver.service.js';
+import { Db } from '../../config/db.config.js';
 import { decompress } from '../../helpers/compress.helper.js';
 
-const schema = new mongoose.Schema(
+const EventSchema = new mongoose.Schema(
     {
         type: Number,
         hmType: Number,
-        data: {
-            type: Object,
-            get: (v) => decompress(v),
-        },
+        data: { type: Object, get: (v) => decompress(v) },
         timestamp: Number,
         pageView: { type: mongoose.Schema.Types.ObjectId, ref: 'PageView' },
     },
     { versionKey: false, toObject: { getters: true }, toJSON: { getters: true } },
 );
 
-export const getEventModel = (conn) => getModel(conn, 'Event', schema);
+export const EventModels = {
+    1: Db.ApiV1.model('Event', EventSchema),
+    2: Db.ApiV2.model('Event', EventSchema),
+};

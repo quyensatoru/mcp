@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import { getModel } from '../../services/shard-resolver.service.js';
+import { Db } from '../../config/db.config.js';
 
-const schema = new mongoose.Schema(
+const AnalyticMissingSchema = new mongoose.Schema(
     {
         shop: { type: mongoose.Schema.Types.ObjectId, ref: 'Shop' },
         date: Date,
@@ -14,4 +14,7 @@ const schema = new mongoose.Schema(
     { timestamps: true, versionKey: false, collection: 'analytic_missing' },
 );
 
-export const getAnalyticMissingModel = (conn) => getModel(conn, 'AnalyticMissing', schema);
+export const AnalyticMissingModels = {
+    1: Db.RecorderV1.model('AnalyticMissing', AnalyticMissingSchema),
+    2: Db.RecorderV2.model('AnalyticMissing', AnalyticMissingSchema),
+};

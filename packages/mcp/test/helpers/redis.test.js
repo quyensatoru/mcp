@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 // Mock redis before importing helper
 vi.mock('../../src/config/redis.config.js', () => ({
@@ -9,6 +9,7 @@ vi.mock('../../src/config/redis.config.js', () => ({
 }));
 
 vi.mock('dotenv/config', () => ({}));
+vi.mock('@mida/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 vi.mock('../../src/config/env.config.js', () => ({
     env: { REDIS_URL: 'redis://localhost:6379', CACHE_TTL: 300 },
 }));

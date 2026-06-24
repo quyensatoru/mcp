@@ -1,23 +1,17 @@
 import { z } from 'zod';
-import { okContent } from '../helpers/format.helper.js';
+import { textContent } from '../helpers/format.helper.js';
 
 export function registerPingTool(server) {
     server.registerTool(
         'ping',
         {
             title: 'Ping',
-            description: 'Kiểm tra MCP server hoạt động. Trả về pong + timestamp.',
+            description: 'Kiểm tra MCP server hoạt động.',
             inputSchema: z.object({
-                message: z.string().optional().describe('Tuỳ chọn: gửi kèm thông điệp'),
+                message: z.string().optional().describe('Tuỳ chọn: thông điệp gửi kèm'),
             }),
         },
-        async ({ message }) => {
-            return okContent({
-                pong: true,
-                ts: new Date().toISOString(),
-                echo: message ?? null,
-                server: 'mida-mcp v1.0.0',
-            });
-        },
+        async ({ message }) =>
+            textContent(`pong · mida-mcp · ${new Date().toISOString()}${message ? ` · ${message}` : ''}`),
     );
 }

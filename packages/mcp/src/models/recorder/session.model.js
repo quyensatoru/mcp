@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import { getModel } from '../../services/shard-resolver.service.js';
+import { Db } from '../../config/db.config.js';
 
-const schema = new mongoose.Schema(
+const RecorderSessionSchema = new mongoose.Schema(
     {
         key: String,
         os: String,
@@ -32,4 +32,7 @@ const schema = new mongoose.Schema(
     { timestamps: true, versionKey: false },
 );
 
-export const getRecorderSessionModel = (conn) => getModel(conn, 'Session', schema);
+export const RecorderSessionModels = {
+    1: Db.RecorderV1.model('Session', RecorderSessionSchema),
+    2: Db.RecorderV2.model('Session', RecorderSessionSchema),
+};

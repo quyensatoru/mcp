@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { getModel } from '../../services/shard-resolver.service.js';
+import { Db } from '../../config/db.config.js';
 
 const sessionDataSchema = new mongoose.Schema(
     {
@@ -22,7 +22,7 @@ const sessionDataSchema = new mongoose.Schema(
     { _id: false },
 );
 
-const schema = new mongoose.Schema(
+const AnalyticSchema = new mongoose.Schema(
     {
         date: String,
         hourArray: [Number],
@@ -36,4 +36,7 @@ const schema = new mongoose.Schema(
     { versionKey: false },
 );
 
-export const getAnalyticModel = (conn) => getModel(conn, 'Analytic', schema);
+export const AnalyticModels = {
+    1: Db.ApiV1.model('Analytic', AnalyticSchema),
+    2: Db.ApiV2.model('Analytic', AnalyticSchema),
+};

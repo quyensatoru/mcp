@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import { getModel } from '../../services/shard-resolver.service.js';
+import { Db } from '../../config/db.config.js';
 
-const schema = new mongoose.Schema(
+const BehaviorSchema = new mongoose.Schema(
     {
         type: String,
         data: Object,
@@ -14,4 +14,7 @@ const schema = new mongoose.Schema(
     { timestamps: true, versionKey: false },
 );
 
-export const getBehaviorModel = (conn) => getModel(conn, 'Behavior', schema);
+export const BehaviorModels = {
+    1: Db.ApiV1.model('Behavior', BehaviorSchema),
+    2: Db.ApiV2.model('Behavior', BehaviorSchema),
+};

@@ -2,6 +2,11 @@ import 'dotenv/config';
 import { env } from './config/env.config.js';
 import { logger } from '@mida/logger';
 import { createMcpServer } from './server.js';
+import { dbReady } from './config/db.config.js';
+
+await dbReady()
+    .then(() => logger.info('All MongoDB connections ready'))
+    .catch((err) => logger.warn({ err }, 'Some MongoDB connections not ready (buffering)'));
 
 if (env.MCP_TRANSPORT === 'stdio') {
     await startStdio();
