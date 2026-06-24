@@ -22,7 +22,7 @@ function toRrwebEvents(docs) {
 }
 
 function formatEventsSummary(events, pageViewId) {
-    if (!events.length) return `Không có rrweb events cho pageView ${pageViewId}.`;
+    if (!events.length) return `No rrweb events for pageView ${pageViewId}.`;
     const byType = {};
     for (const e of events) {
         const name = RRWEB_TYPE[e.type] ?? `type${e.type}`;
@@ -33,7 +33,7 @@ function formatEventsSummary(events, pageViewId) {
     return [
         `rrweb events for pageView ${pageViewId}: ${events.length} events`,
         `  duration: ${last - first}ms`,
-        `  has full snapshot: ${byType.FullSnapshot ? 'yes' : 'no — replay có thể vỡ'}`,
+        `  has full snapshot: ${byType.FullSnapshot ? 'yes' : 'no — replay may break'}`,
         `  by type: ${Object.entries(byType).map(([k, v]) => `${k}=${v}`).join(', ')}`,
     ].join('\n');
 }
@@ -52,11 +52,11 @@ export function registerReplayTools(server) {
         {
             title: 'Replay Events Summary',
             description:
-                'Tóm tắt rrweb events của 1 pageView (số lượng, loại, duration, có full snapshot không) — chẩn đoán recording có dữ liệu hay không.',
+                'Summarize rrweb events for a pageview (count, type breakdown, duration, whether a full snapshot exists). Use to check if a recording has usable data before rendering.',
             inputSchema: z.object({
-                domain: z.string(),
-                pageViewId: z.string(),
-                limit: z.number().int().min(1).max(5000).default(2000),
+                domain: z.string().describe('Shopify domain'),
+                pageViewId: z.string().describe('PageView ObjectId'),
+                limit: z.number().int().min(1).max(5000).default(2000).describe('Max events to scan'),
             }),
         },
         wrap('replay_events', async ({ domain, pageViewId, limit }) => {
@@ -70,18 +70,19 @@ export function registerReplayTools(server) {
         'replay_render',
         {
             title: 'Replay Render',
-            description: 'Render rrweb replay tại mốc thời gian → ảnh PNG. Dùng để xem thực tế UI lúc replay.',
+            description:
+                'Render the rrweb replay at a time offset into a PNG screenshot. Use to visually see what the page looked like during the session.',
             inputSchema: z.object({
-                domain: z.string(),
-                pageViewId: z.string(),
-                atMs: z.number().optional().describe('Mốc ms từ đầu replay (bỏ trống = cuối)'),
-                eventLimit: z.number().int().min(100).max(5000).default(1000),
+                domain: z.string().describe('Shopify domain'),
+                pageViewId: z.string().describe('PageView ObjectId'),
+                atMs: z.number().optional().describe('Offset in ms from replay start (omit = end)'),
+                eventLimit: z.number().int().min(100).max(5000).default(1000).describe('Max events to load'),
             }),
         },
         wrap('replay_render', async ({ domain, pageViewId, atMs, eventLimit }) => {
             const proxy = await resolveProxy(domain);
             const docs = await ReplayService.events(proxy, pageViewId, eventLimit);
-            if (!docs.length) return errorContent(`Không có events cho pageView ${pageViewId}.`);
+            if (!docs.length) return errorContent(`No events for pageView ${pageViewId}.`);
             const { buffer, seekMs, totalDuration, errors } = await rrwebService.render(
                 toRrwebEvents(docs),
                 { atMs },
@@ -99,12 +100,13 @@ export function registerReplayTools(server) {
         'screenshot_url',
         {
             title: 'Screenshot URL',
-            description: 'Chụp website thật (storefront/page) bằng Playwright. Dùng để so sánh với replay.',
+            description:
+                'Capture a live URL screenshot via Playwright. Use to compare the live storefront/page against a replay.',
             inputSchema: z.object({
-                url: z.string().url(),
-                width: z.number().int().default(1280),
-                height: z.number().int().default(800),
-                waitFor: z.enum(['load', 'networkidle']).default('networkidle'),
+                url: z.string().url().describe('URL to capture'),
+                width: z.number().int().default(1280).describe('Viewport width'),
+                height: z.number().int().default(800).describe('Viewport height'),
+                waitFor: z.enum(['load', 'networkidle']).default('networkidle').describe('Wait condition before capture'),
             }),
         },
         wrap('screenshot_url', async ({ url, width, height, waitFor }) => {
@@ -126,19 +128,19 @@ export function registerReplayTools(server) {
         {
             title: 'Replay Diagnose',
             description:
-                'So replay (snapshot) ↔ live URL: render cả hai + pixelmatch diff. Trả 3 ảnh (replay, live, diff) + chẩn đoán.',
+                'Render the replay vs a live URL and pixel-diff them. Returns replay, live, and diff images plus a verdict. Use to diagnose visual/CSS/JS breakage by comparing recorded vs current rendering.',
             inputSchema: z.object({
-                domain: z.string(),
-                pageViewId: z.string(),
-                compareUrl: z.string().url(),
-                atMs: z.number().optional(),
-                eventLimit: z.number().int().min(100).max(5000).default(1000),
+                domain: z.string().describe('Shopify domain'),
+                pageViewId: z.string().describe('PageView ObjectId'),
+                compareUrl: z.string().url().describe('Live URL to compare against'),
+                atMs: z.number().optional().describe('Offset in ms from replay start (omit = end)'),
+                eventLimit: z.number().int().min(100).max(5000).default(1000).describe('Max events to load'),
             }),
         },
         wrap('replay_diagnose', async ({ domain, pageViewId, compareUrl, atMs, eventLimit }) => {
             const proxy = await resolveProxy(domain);
             const docs = await ReplayService.events(proxy, pageViewId, eventLimit);
-            if (!docs.length) return errorContent(`Không có events cho pageView ${pageViewId}.`);
+            if (!docs.length) return errorContent(`No events for pageView ${pageViewId}.`);
 
             const [replay, live] = await Promise.all([
                 rrwebService.render(toRrwebEvents(docs), { atMs }),
@@ -146,9 +148,9 @@ export function registerReplayTools(server) {
             ]);
             const { diffBuffer, diffPercent, diffPixels, totalPixels } = diffImages(replay.buffer, live.buffer);
             const verdict =
-                diffPercent > 30 ? '🔴 khác biệt lớn (>30%) — CSS/JS lỗi hoặc layout vỡ'
-                : diffPercent > 10 ? '🟡 khác biệt đáng chú ý (10-30%) — có thể nội dung động'
-                : '🟢 gần giống (<10%) — hiển thị bình thường';
+                diffPercent > 30 ? '🔴 large difference (>30%) — likely broken CSS/JS or layout'
+                : diffPercent > 10 ? '🟡 notable difference (10-30%) — possibly dynamic content'
+                : '🟢 close match (<10%) — renders normally';
 
             return {
                 content: [

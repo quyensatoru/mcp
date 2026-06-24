@@ -33,9 +33,9 @@ export function registerShopTool(server) {
         {
             title: 'Shop Overview',
             description:
-                'Bước 0 cho mọi truy vấn theo shop: resolve shard + đọc thông tin shop (status, plan, quota, embed, onboarding). Access token bị loại bỏ.',
+                'STEP 0 for any shop-scoped query. Resolves the data shard and returns shop status, plan, session-quota usage, embed/pixel install state, and onboarding flags. Call this first to confirm the shop exists, is active, and has quota before deeper analysis. Access token is never returned.',
             inputSchema: z.object({
-                domain: z.string().describe('Shopify domain, vd "store.myshopify.com"'),
+                domain: z.string().describe('Shopify domain, e.g. "store.myshopify.com"'),
             }),
         },
         wrap('shop_overview', async ({ domain }) => {
@@ -45,7 +45,7 @@ export function registerShopTool(server) {
                 return { proxy, shop };
             });
             if (!data.shop)
-                return errorContent(`Shop không tồn tại trong api: ${domain}`, 'Kiểm tra lại domain.');
+                return errorContent(`Shop not found in api: ${domain}`, 'Check the domain spelling.');
             return textContent(formatShopOverview(data.shop, data.proxy));
         }),
     );

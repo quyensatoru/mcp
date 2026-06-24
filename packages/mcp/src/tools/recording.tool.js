@@ -40,8 +40,8 @@ function formatMissing(data, shop, domain) {
     const used = shop?.session_count ?? null;
     const overQuota = limit != null && used != null && used >= limit;
     const diagnosis = sessionMissing.length || analyticMissing.length
-        ? `Có ${sessionMissing.length} session + ${analyticMissing.length} ngày bị missing → khả năng vượt quota. session_count=${used ?? '—'} / session_limit=${limit ?? '—'} (${overQuota ? 'ĐÃ vượt' : 'chưa vượt'}).`
-        : 'Không có record missing → shop chưa chạm quota limit.';
+        ? `${sessionMissing.length} sessions + ${analyticMissing.length} days marked missing → likely over quota. session_count=${used ?? '—'} / session_limit=${limit ?? '—'} (${overQuota ? 'OVER limit' : 'under limit'}).`
+        : 'No missing records → shop has not hit its quota limit.';
     const lines = [
         `Recording missing — ${domain}`,
         `  ${diagnosis}`,
@@ -61,10 +61,10 @@ export function registerRecordingTools(server) {
         {
             title: 'Recording Integrity',
             description:
-                'So api ↔ recorder (replica): drift session_count + replica lag. Truyền sessionId để so chi tiết 1 session (MISSING/STALE/IN_SYNC).',
+                'Compare api (source) vs recorder (replica): session_count drift + replica lag. Pass sessionId to compare one session in detail (MISSING/STALE/IN_SYNC). Use when recorder/replica data looks out of sync with api.',
             inputSchema: z.object({
-                domain: z.string(),
-                sessionId: z.string().optional().describe('ObjectId session để so chi tiết'),
+                domain: z.string().describe('Shopify domain'),
+                sessionId: z.string().optional().describe('Session ObjectId for a detailed per-session compare'),
             }),
         },
         wrap('recording_integrity', async ({ domain, sessionId }) => {
@@ -79,7 +79,7 @@ export function registerRecordingTools(server) {
                 ]);
                 return { proxy, counts, lag, session };
             });
-            if (data.missing) return errorContent(`Shop không tồn tại: ${domain}`);
+            if (data.missing) return errorContent(`Shop not found: ${domain}`);
             return textContent(formatIntegrity(data, domain, data.proxy));
         }),
     );
@@ -89,17 +89,17 @@ export function registerRecordingTools(server) {
         {
             title: 'Recording Missing',
             description:
-                'Đọc sessionmissings + analytic_missing (recorder). Session bị bỏ khi shop vượt quota session_limit — không phải lỗi consumer.',
+                'Reads sessionmissings + analytic_missing (recorder): sessions dropped because the shop exceeded its plan session_limit (a quota feature, NOT a consumer/queue error). Use to explain "sessions not recorded" when quota is the suspected cause.',
             inputSchema: z.object({
-                domain: z.string(),
-                dateFrom: z.string().optional().describe('YYYY-MM-DD'),
-                dateTo: z.string().optional().describe('YYYY-MM-DD'),
+                domain: z.string().describe('Shopify domain'),
+                dateFrom: z.string().optional().describe('Start date YYYY-MM-DD'),
+                dateTo: z.string().optional().describe('End date YYYY-MM-DD'),
             }),
         },
         wrap('recording_missing', async ({ domain, dateFrom, dateTo }) => {
             const proxy = await resolveProxy(domain);
             const shop = await ShopService.findByDomain(proxy, domain);
-            if (!shop) return errorContent(`Shop không tồn tại: ${domain}`);
+            if (!shop) return errorContent(`Shop not found: ${domain}`);
             const data = await withCache(cacheKey('recording_missing', { domain, dateFrom, dateTo }), TTL, () =>
                 RecordingService.missing(proxy, shop._id, dateFrom, dateTo),
             );

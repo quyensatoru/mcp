@@ -9,9 +9,9 @@ import { wrap } from '../helpers/tool.helper.js';
 const TTL = 180;
 const deviceArg = z.enum(['Desktop', 'Mobile', 'Tablet']).default('Desktop');
 
-// pageId hoặc pageViewId → filter target; bắt buộc 1 trong 2.
+// pageId or pageViewId → target filter; exactly one is required.
 function targetFilter({ pageId, pageViewId, device }) {
-    if (!pageId && !pageViewId) throw new Error('Cần pageId hoặc pageViewId.');
+    if (!pageId && !pageViewId) throw new Error('Provide pageId or pageViewId.');
     const filter = { device };
     if (pageId) filter.page = toObjectId(pageId);
     if (pageViewId) filter.pageView = toObjectId(pageViewId);
@@ -19,7 +19,7 @@ function targetFilter({ pageId, pageViewId, device }) {
 }
 
 function formatClicks(clicks, device) {
-    if (!clicks.length) return `Không có click data (device=${device}).`;
+    if (!clicks.length) return `No click data (device=${device}).`;
     const rows = clicks.map(
         (c, i) =>
             `${i + 1}. x:${c.x ?? '?'} y:${c.y ?? '?'} · ${c.counts ?? 0} clicks${c.type ? ` · ${c.type}` : ''} · ${abbreviate(c.selector, 60)}`,
@@ -28,7 +28,7 @@ function formatClicks(clicks, device) {
 }
 
 function formatSelectors(selectors, device) {
-    if (!selectors.length) return `Không có dữ liệu selector (device=${device}).`;
+    if (!selectors.length) return `No selector data (device=${device}).`;
     const rows = selectors.map(
         (s, i) => `${i + 1}. ${s.clicks} clicks · ${s.points} points · ${abbreviate(s._id, 70)}`,
     );
@@ -36,7 +36,7 @@ function formatSelectors(selectors, device) {
 }
 
 function formatScroll(scrolls, device) {
-    if (!scrolls.length) return `Không có scroll data (device=${device}).`;
+    if (!scrolls.length) return `No scroll data (device=${device}).`;
     const rows = scrolls.map((s) => `  ${s.percent ?? s.depth ?? '?'}%: ${s.counts ?? 0} reached`);
     return [`Scroll depth distribution (device=${device}):`, ...rows].join('\n');
 }
@@ -47,14 +47,17 @@ export function registerHeatmapTools(server) {
         {
             title: 'Heatmap Click',
             description:
-                'Top click hotspots theo toạ độ/selector của 1 page hoặc pageView. type lọc revenue/rage/dead/error click.',
+                'Top click hotspots (coordinates/selector + counts) for a page or pageview. Filter by device and click type. Use for "where do users click" and rage/dead/error-click problems.',
             inputSchema: z.object({
-                domain: z.string(),
-                pageId: z.string().optional(),
-                pageViewId: z.string().optional(),
-                device: deviceArg,
-                type: z.enum(['revenue-click', 'rage-click', 'dead-click', 'error-click']).optional(),
-                limit: z.number().int().min(1).max(200).default(30),
+                domain: z.string().describe('Shopify domain'),
+                pageId: z.string().optional().describe('Page ObjectId (from page_list)'),
+                pageViewId: z.string().optional().describe('PageView ObjectId'),
+                device: deviceArg.describe('Device type (default Desktop)'),
+                type: z
+                    .enum(['revenue-click', 'rage-click', 'dead-click', 'error-click'])
+                    .optional()
+                    .describe('Filter by click type'),
+                limit: z.number().int().min(1).max(200).default(30).describe('Max hotspots to return'),
             }),
         },
         wrap('heatmap_click', async ({ domain, pageId, pageViewId, device, type, limit }) => {
@@ -72,12 +75,13 @@ export function registerHeatmapTools(server) {
         'heatmap_scroll',
         {
             title: 'Heatmap Scroll',
-            description: 'Phân bố scroll depth của 1 page/pageView theo device.',
+            description:
+                'Scroll-depth distribution for a page/pageview by device. Use for "how far do users scroll" or content-below-the-fold questions.',
             inputSchema: z.object({
-                domain: z.string(),
-                pageId: z.string().optional(),
-                pageViewId: z.string().optional(),
-                device: deviceArg,
+                domain: z.string().describe('Shopify domain'),
+                pageId: z.string().optional().describe('Page ObjectId (from page_list)'),
+                pageViewId: z.string().optional().describe('PageView ObjectId'),
+                device: deviceArg.describe('Device type (default Desktop)'),
             }),
         },
         wrap('heatmap_scroll', async ({ domain, pageId, pageViewId, device }) => {
@@ -94,12 +98,13 @@ export function registerHeatmapTools(server) {
         'heatmap_page_insight',
         {
             title: 'Heatmap Page Insight',
-            description: 'Top element/selector được tương tác nhiều nhất trên 1 page (gộp theo selector).',
+            description:
+                'Top interacted elements on a page, aggregated by CSS selector. Use for a quick "which elements get the most engagement" summary of a page.',
             inputSchema: z.object({
-                domain: z.string(),
-                pageId: z.string(),
-                device: deviceArg,
-                limit: z.number().int().min(1).max(50).default(15),
+                domain: z.string().describe('Shopify domain'),
+                pageId: z.string().describe('Page ObjectId (from page_list)'),
+                device: deviceArg.describe('Device type (default Desktop)'),
+                limit: z.number().int().min(1).max(50).default(15).describe('Max elements to return'),
             }),
         },
         wrap('heatmap_page_insight', async ({ domain, pageId, device, limit }) => {

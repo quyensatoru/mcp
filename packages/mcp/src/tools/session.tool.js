@@ -13,7 +13,7 @@ const TTL = 120;
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 function formatSessionList(sessions, domain) {
-    if (!sessions.length) return `Không có session khớp filter cho ${domain}.`;
+    if (!sessions.length) return `No sessions match the filter for ${domain}.`;
     const rows = sessions.map((s, i) => {
         const flags = [s.frustrated && 'frustrated', s.status === false && 'open'].filter(Boolean);
         const head = `${i + 1}. ${s.device ?? '?'}/${s.browser ?? '?'} · ${s.location ?? '?'} · ${s.duration ?? 0}s · ${s.page_per_session ?? 0}pv${flags.length ? ` · ${flags.join(',')}` : ''} — ${mdLink('View Replay', replayLink(s._id))}`;
@@ -47,7 +47,7 @@ function formatSessionDetail(data, domain) {
 }
 
 function formatPageList(pages, domain) {
-    if (!pages.length) return `Không có page khớp cho ${domain}.`;
+    if (!pages.length) return `No pages match for ${domain}.`;
     const rows = pages.map(
         (p, i) =>
             `${i + 1}. ${p.title ?? '(no title)'} · hm:${p.hmEnabled ? 'on' : 'off'} — ${mdLink('View Heatmap', heatmapLink(p._id))}\n   ${abbreviate(p.address, 80)}`,
@@ -56,7 +56,7 @@ function formatPageList(pages, domain) {
 }
 
 function formatBehaviorEvents(behaviors) {
-    if (!behaviors.length) return 'Không có behavior event.';
+    if (!behaviors.length) return 'No behavior events.';
     const rows = behaviors.map((b, i) => {
         const data = b.data ? abbreviate(JSON.stringify(b.data), 100) : '';
         return `${i + 1}. [${b.type ?? '?'}]${b.funnels?.length ? ` funnels=${b.funnels.join(',')}` : ''} ${data}`;
@@ -70,23 +70,23 @@ export function registerSessionTools(server) {
         {
             title: 'Session List',
             description:
-                'Liệt kê session theo filter (device, location, frustrated, email, ngày). Mỗi dòng kèm link replay.',
+                'List recorded sessions filtered by device, location, frustration, customer email, or date range. Each row includes a replay link. Use to find specific sessions to inspect — e.g. frustrated users or a given customer’s visits.',
             inputSchema: z.object({
-                domain: z.string(),
-                device: z.enum(['Desktop', 'Mobile', 'Tablet']).optional(),
-                location: z.string().optional(),
-                frustrated: z.boolean().optional(),
-                customer_email: z.string().optional(),
-                dateFrom: z.string().optional().describe('YYYY-MM-DD theo createdAt'),
-                dateTo: z.string().optional().describe('YYYY-MM-DD theo createdAt'),
-                limit: z.number().int().min(1).max(100).default(20),
+                domain: z.string().describe('Shopify domain'),
+                device: z.enum(['Desktop', 'Mobile', 'Tablet']).optional().describe('Filter by device type'),
+                location: z.string().optional().describe('Filter by location (country/region string)'),
+                frustrated: z.boolean().optional().describe('Only frustrated sessions when true'),
+                customer_email: z.string().optional().describe('Filter by exact customer email'),
+                dateFrom: z.string().optional().describe('Start date YYYY-MM-DD (by createdAt)'),
+                dateTo: z.string().optional().describe('End date YYYY-MM-DD (by createdAt)'),
+                limit: z.number().int().min(1).max(100).default(20).describe('Max sessions to return'),
             }),
         },
         wrap('session_list', async (args) => {
             const { domain, limit, ...f } = args;
             const proxy = await resolveProxy(domain);
             const shopId = await ShopService.idByDomain(proxy, domain);
-            if (!shopId) return errorContent(`Shop không tồn tại: ${domain}`);
+            if (!shopId) return errorContent(`Shop not found: ${domain}`);
 
             const filter = { shop: shopId };
             if (f.device) filter.device = f.device;
@@ -108,20 +108,19 @@ export function registerSessionTools(server) {
         {
             title: 'Session Detail',
             description:
-                'Chi tiết 1 session: visitor + pageviews + đếm events/behaviors + flags chỗ đứt pipeline (Session→PageView→Event).',
+                'Full detail of one session (by id or key): visitor info, pageviews, counts of rrweb events & behaviors, plus pipeline flags. Use to diagnose "recording missing/broken" — the flags show where the Session → PageView → Event chain breaks.',
             inputSchema: z.object({
-                domain: z.string(),
-                sessionId: z.string().optional().describe('ObjectId của session'),
-                sessionKey: z.string().optional().describe('session.key (UUID client)'),
+                domain: z.string().describe('Shopify domain'),
+                sessionId: z.string().optional().describe('Session ObjectId'),
+                sessionKey: z.string().optional().describe('session.key (client UUID)'),
             }),
         },
         wrap('session_detail', async ({ domain, sessionId, sessionKey }) => {
-            if (!sessionId && !sessionKey)
-                return errorContent('Cần sessionId hoặc sessionKey.');
+            if (!sessionId && !sessionKey) return errorContent('Provide sessionId or sessionKey.');
             const proxy = await resolveProxy(domain);
             const filter = sessionId ? { _id: toObjectId(sessionId) } : { key: sessionKey };
             const session = await SessionService.findOne(proxy, filter);
-            if (!session) return errorContent(`Session không tồn tại: ${sessionId ?? sessionKey}`);
+            if (!session) return errorContent(`Session not found: ${sessionId ?? sessionKey}`);
 
             const pageviews = await SessionService.pageviews(proxy, session._id);
             const pvIds = pageviews.map((p) => p._id);
@@ -132,9 +131,9 @@ export function registerSessionTools(server) {
             ]);
 
             const flags = [];
-            if (!pageviews.length) flags.push('Session tồn tại nhưng 0 PageView — ingest/queue có thể lỗi');
-            else if (events === 0) flags.push('Có PageView nhưng 0 Event (rrweb) — recording không gửi data hoặc consumer drop');
-            if (session.status === false) flags.push('Session chưa đóng (status=false)');
+            if (!pageviews.length) flags.push('Session exists but has 0 PageViews — ingest/queue may have failed');
+            else if (events === 0) flags.push('PageViews exist but 0 rrweb Events — recorder sent no data or consumer dropped it');
+            if (session.status === false) flags.push('Session not closed (status=false)');
 
             return textContent(
                 formatSessionDetail(
@@ -149,17 +148,18 @@ export function registerSessionTools(server) {
         'page_list',
         {
             title: 'Page List',
-            description: 'Tìm Page theo title/address. Mỗi dòng kèm link heatmap.',
+            description:
+                'Find pages by title or address, with heatmap-enabled flag and a heatmap link. Use to locate a page id before querying heatmaps, or to check which pages have heatmap tracking on.',
             inputSchema: z.object({
-                domain: z.string(),
-                q: z.string().optional().describe('Từ khoá khớp title hoặc address'),
-                limit: z.number().int().min(1).max(100).default(20),
+                domain: z.string().describe('Shopify domain'),
+                q: z.string().optional().describe('Keyword matched against page title or address'),
+                limit: z.number().int().min(1).max(100).default(20).describe('Max pages to return'),
             }),
         },
         wrap('page_list', async ({ domain, q, limit }) => {
             const proxy = await resolveProxy(domain);
             const shopId = await ShopService.idByDomain(proxy, domain);
-            if (!shopId) return errorContent(`Shop không tồn tại: ${domain}`);
+            if (!shopId) return errorContent(`Shop not found: ${domain}`);
 
             const filter = { shop: shopId };
             if (q) {
@@ -177,17 +177,17 @@ export function registerSessionTools(server) {
         'behavior_events',
         {
             title: 'Behavior Events',
-            description: 'Behavior (cart/funnel/ux) theo session hoặc pageview.',
+            description:
+                'Behavior events (cart, funnel, UX issues) for a session or a pageview. Use to inspect what actions a user took, or to diagnose cart/checkout funnel behavior at the event level.',
             inputSchema: z.object({
-                domain: z.string(),
-                sessionId: z.string().optional(),
-                pageViewId: z.string().optional(),
-                limit: z.number().int().min(1).max(200).default(50),
+                domain: z.string().describe('Shopify domain'),
+                sessionId: z.string().optional().describe('Session ObjectId (all behaviors of the session)'),
+                pageViewId: z.string().optional().describe('PageView ObjectId (behaviors of one pageview)'),
+                limit: z.number().int().min(1).max(200).default(50).describe('Max events to return'),
             }),
         },
         wrap('behavior_events', async ({ domain, sessionId, pageViewId, limit }) => {
-            if (!sessionId && !pageViewId)
-                return errorContent('Cần sessionId hoặc pageViewId.');
+            if (!sessionId && !pageViewId) return errorContent('Provide sessionId or pageViewId.');
             const proxy = await resolveProxy(domain);
             const filter = pageViewId
                 ? { pageView: toObjectId(pageViewId) }

@@ -6,9 +6,9 @@ export function registerPingTool(server) {
         'ping',
         {
             title: 'Ping',
-            description: 'Kiểm tra MCP server hoạt động.',
+            description: 'Health check. Returns pong + server timestamp to verify the MCP server is reachable.',
             inputSchema: z.object({
-                message: z.string().optional().describe('Tuỳ chọn: thông điệp gửi kèm'),
+                message: z.string().optional().describe('Optional message to echo back'),
             }),
         },
         async ({ message }) =>

@@ -5,12 +5,12 @@ import { wrap } from '../helpers/tool.helper.js';
 
 function formatResults(results, query) {
     if (!results.length)
-        return `Không tìm thấy tài liệu cho "${query}". Thử từ khoá khác hoặc đọc mida-doc://index.`;
+        return `No docs found for "${query}". Try other keywords or read mida-doc://index.`;
     const rows = results.map(
         (r, i) =>
             `${i + 1}. ${r.title}\n   ${abbreviate(r.excerpt, 160)}\n   ${r.url}\n   resource: mida-doc://page/${r.slug}`,
     );
-    return [`Docs "${query}" — ${results.length} kết quả:`, '', ...rows].join('\n');
+    return [`Docs "${query}" — ${results.length} results:`, '', ...rows].join('\n');
 }
 
 export function registerDocsTool(server) {
@@ -19,10 +19,10 @@ export function registerDocsTool(server) {
         {
             title: 'Docs Search',
             description:
-                'Tìm trong tài liệu Mida để hiểu hành vi kỳ vọng / trả lời khách. Dùng trước khi kết luận.',
+                'Search the Mida documentation (help center). Use to confirm the expected/correct behavior of a feature before concluding, or to back a customer-facing answer with an authoritative reference.',
             inputSchema: z.object({
-                query: z.string().describe('Từ khoá (tiếng Anh hoặc tiếng Việt)'),
-                topK: z.number().int().min(1).max(10).default(5),
+                query: z.string().describe('Search keywords'),
+                topK: z.number().int().min(1).max(10).default(5).describe('Number of results to return'),
             }),
         },
         wrap('docs_search', async ({ query, topK }) => {
@@ -32,7 +32,7 @@ export function registerDocsTool(server) {
             } catch (err) {
                 return errorContent(
                     `docs_search: ${err.message}`,
-                    'Chạy npm run crawl:docs && npm run docs:index trước.',
+                    'Run "npm run crawl:docs && npm run docs:index" first.',
                 );
             }
         }),

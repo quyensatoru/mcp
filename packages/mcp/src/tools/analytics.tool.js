@@ -20,8 +20,8 @@ function formatDailyRow(a) {
 }
 
 function formatAnalyticsDaily(analytics, domain, from, to) {
-    if (!analytics.length) return `Không có analytics cho ${domain} (${from} → ${to}).`;
-    return [`Analytics ${domain} (${from} → ${to}) — ${analytics.length} ngày:`, '', ...analytics.map(formatDailyRow)].join('\n');
+    if (!analytics.length) return `No analytics for ${domain} (${from} → ${to}).`;
+    return [`Analytics ${domain} (${from} → ${to}) — ${analytics.length} days:`, '', ...analytics.map(formatDailyRow)].join('\n');
 }
 
 function formatConversionFunnel(analytics, domain, from, to) {
@@ -66,12 +66,16 @@ export function registerAnalyticsTools(server) {
         {
             title: 'Analytics Daily',
             description:
-                'Số liệu theo ngày: visitor (new/returning), sessions, ATC, checkout, purchased, conversion/bounce rate.',
-            inputSchema: z.object({ domain: z.string(), dateFrom: dateArg, dateTo: dateArg }),
+                'Per-day metrics over a date range: visitors (new/returning), sessions, add-to-cart, checkout, purchased, conversion & bounce rate. Use for store-performance and traffic/sales-trend questions, or to verify aggregated daily numbers.',
+            inputSchema: z.object({
+                domain: z.string().describe('Shopify domain'),
+                dateFrom: dateArg,
+                dateTo: dateArg,
+            }),
         },
         wrap('analytics_daily', async ({ domain, dateFrom, dateTo }) => {
             const { shopId, analytics } = await loadAnalytics(domain, dateFrom, dateTo);
-            if (!shopId) return errorContent(`Shop không tồn tại: ${domain}`);
+            if (!shopId) return errorContent(`Shop not found: ${domain}`);
             return textContent(formatAnalyticsDaily(analytics, domain, dateFrom, dateTo));
         }),
     );
@@ -81,12 +85,16 @@ export function registerAnalyticsTools(server) {
         {
             title: 'Conversion Funnel',
             description:
-                'Gộp funnel toàn khoảng: sessions → view product → add to cart → checkout → purchased, kèm tỉ lệ rớt từng bước.',
-            inputSchema: z.object({ domain: z.string(), dateFrom: dateArg, dateTo: dateArg }),
+                'Aggregated funnel over a date range: sessions → product view → add to cart → checkout → purchased, with drop-off % at each step. Use to find where users drop off or diagnose conversion problems.',
+            inputSchema: z.object({
+                domain: z.string().describe('Shopify domain'),
+                dateFrom: dateArg,
+                dateTo: dateArg,
+            }),
         },
         wrap('conversion_funnel', async ({ domain, dateFrom, dateTo }) => {
             const { shopId, analytics } = await loadAnalytics(domain, dateFrom, dateTo);
-            if (!shopId) return errorContent(`Shop không tồn tại: ${domain}`);
+            if (!shopId) return errorContent(`Shop not found: ${domain}`);
             return textContent(formatConversionFunnel(analytics, domain, dateFrom, dateTo));
         }),
     );
