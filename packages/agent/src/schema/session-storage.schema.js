@@ -2,9 +2,9 @@ import mongoose from 'mongoose';
 
 const sessionStorageSchema = new mongoose.Schema(
     {
-        sesssionId: { type: mongoose.Schema.Types.String },
-        threadId: { type: mongoose.Schema.Types.String },
-        channelId: { type: mongoose.Schema.Types.String },
+        sessionId: String,
+        threadId: String,
+        channelId: String
     },
     {
         versionKey: false,
@@ -12,4 +12,6 @@ const sessionStorageSchema = new mongoose.Schema(
     },
 );
 
-export const sessionStorageModel = mongoose.model('SessionStorage', sessionStorageModel);
+sessionStorageSchema.index({ sessionId: 1 })
+
+export const sessionStorageModel = mongoose.model('SessionStorage', sessionStorageSchema);

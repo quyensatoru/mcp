@@ -1,5 +1,6 @@
 import { logger } from '@mida/logger';
 import { createClaudeAgent } from '../config/claude.config.js';
+import { sessionStorageModel } from '../schema/session-storage.schema.js';
 
 let botUserId = null;
 
@@ -36,26 +37,52 @@ export const handleEvent = async (client, e) => {
 
     const post = JSON.parse(msg.data.post);
 
+    const rootId = post.root_id || post.id;
+
+    const session = await sessionStorageModel.findOne({
+        threadId: rootId,
+        channelId: post.channel_id
+    })
+
     if (!botUserId) botUserId = (await client.getMe()).id;
     if (post.user_id === botUserId) return;
-    if (!post.message.includes("@bssc_sa_th_agent_bot")) return;
+    if (!post.message.includes("@bssc_sa_th_agent_bot") && !session) return;
 
-    const rootId = post.root_id || post.id;
     const reply = await client.createPost(post.channel_id, '...', { rootId });
     const updater = makeStreamUpdater(client, reply.id);
+    
 
     try {
-        const { query: stream } = createClaudeAgent(post.message, post.channel_id);
+        const message = post.message.replaceAll("@bssc_sa_th_agent_bot", "")
+        const { query: stream } = createClaudeAgent(message, session?.sessionId || "");
 
         for await (const event of stream) {
+            console.log(event);
+            if (event.type === "system") {
+                await sessionStorageModel.findOneAndUpdate({
+                    sessionId: event.session_id,
+                }, {
+                    threadId: rootId,
+                    channelId: post.channel_id
+                }, {
+                    upsert: true
+                })
+            }
+
             if (event.type !== 'assistant') continue;
 
             for (const block of event.message?.content ?? []) {
-                console.log(block)
-                if (block.type === 'text') {
-                    updater.append(block.text);
-                } else if (block.type === 'tool_use') {
-                    updater.append(`\n_🔧 ${block.name.slice(30)}..._\n`);
+                switch(block.type) {
+                    case "text":
+                        updater.append(block.text);
+                        break;
+                    case "tool_use": {
+                        const name = block.name.slice(0, 30)
+                        updater.append(`\n_🔧 ${name}..._\n`);
+                        break;
+                    }
+                    default: 
+                        break;
                 }
             }
         }

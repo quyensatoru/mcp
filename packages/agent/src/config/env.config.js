@@ -26,6 +26,14 @@ const envSchema = z.object({
     GITLAB_TOKEN: z.string().optional(),
     GITLAB_URL: z.string().url().default('https://gitlab.com'),
     GITLAB_PROJECT_ID: z.string().optional(),
+
+    FIGMA_API_TOKEN: z.string().optional(),
+
+    JIRA_USERNAME: z.string().optional(),
+    JIRA_API_TOKEN: z.string().optional(),
+
+    TWENTY_API_KEY: z.string().optional(),
+    TWENTY_BASE_URL: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
