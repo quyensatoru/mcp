@@ -5,7 +5,7 @@ import { MATTERMOST_LOADING } from '../constants/cdn.constants.js';
 
 let botUserId = null;
 
-// key -> [{resolve, timer}, ...] — queue per thread so concurrent tool calls don't overwrite each other
+// key -> [{resolve, timer, toolUseID, toolName, input}, ...] — queue per thread so concurrent tool calls don't overwrite each other
 const pendingPermissions = new Map();
 
 const READ_ONLY_RE = /\b(get|list|search|find|fetch|read|view|query|retrieve|describe|show|count|stat|info|ping|whoami|preview|check|download)\b/i;
@@ -41,10 +41,10 @@ function makeStreamUpdater(client, postId, loading) {
 
 function buildCanUseTool(client, channelId, rootId) {
     return async (toolName, input, options) => {
-        if (!toolName.startsWith('mcp__')) return { behavior: 'allow' };
+        if (!toolName.startsWith('mcp__')) return { behavior: 'allow', updatedInput: input };
 
         const localName = toolName.split('__').pop() ?? '';
-        if (READ_ONLY_RE.test(localName)) return { behavior: 'allow' };
+        if (READ_ONLY_RE.test(localName)) return { behavior: 'allow', updatedInput: input };
 
         const key = `${channelId}:${rootId}`;
         const toolUseID = options?.toolUseID;
@@ -61,12 +61,11 @@ function buildCanUseTool(client, channelId, rootId) {
                     if (idx !== -1) queue.splice(idx, 1);
                     if (queue.length === 0) pendingPermissions.delete(key);
                 }
-                resolve({ behavior: 'deny', message: 'Timeout: không có phản hồi trong 120s', toolUseID });
+                resolve({ behavior: 'deny', message: 'Timeout: không có phản hồi trong 120s' });
             }, 120_000);
 
-            // Register callback BEFORE sending the post to avoid race condition
             const queue = pendingPermissions.get(key) ?? [];
-            queue.push({ resolve, timer, toolUseID, toolName });
+            queue.push({ resolve, timer, toolUseID, toolName, input });
             pendingPermissions.set(key, queue);
 
             client.createPost(channelId,
@@ -90,7 +89,7 @@ function buildCanUseTool(client, channelId, rootId) {
                 }
                 console.log("resolved")
                 clearTimeout(timer);
-                resolve({ behavior: 'deny', message: `Không thể gửi yêu cầu xác nhận: ${err.message}`, toolUseID });
+                resolve({ behavior: 'deny', message: `Không thể gửi yêu cầu xác nhận: ${err.message}` });
             });
         });
     };
@@ -124,9 +123,10 @@ export const handleEvent = async (client, e) => {
         const lower = post.message.toLowerCase().trim();
         const allow = /^(yes|y|ok|có|co|✅|1)(\s|$)/i.test(lower);
         console.log('[PERM] resolving tool:', pending.toolName, '| toolUseID:', pending.toolUseID, '| allow:', allow, `| remaining queue: ${permQueue.length}`);
+
         pending.resolve(allow
-            ? { behavior: 'allow', toolUseID: pending.toolUseID }
-            : { behavior: 'deny', message: 'Người dùng từ chối thực thi', toolUseID: pending.toolUseID });
+            ? { behavior: 'allow', updatedInput: pending.input, toolUseID: pending.toolUseID }
+            : { behavior: 'deny', message: 'Người dùng từ chối thực thi' });
         await client.createPost(post.channel_id,
             allow ? '✅ Đã cho phép. Agent tiếp tục thực thi...' : '❌ Đã từ chối. Agent dừng thực thi.',
             { rootId },

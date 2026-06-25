@@ -17,6 +17,17 @@ export const mcpServers = {
             ATLASSIAN_API_TOKEN:  env.JIRA_API_TOKEN,
         },
     },
+    gitlab: {
+        command: 'npx',
+        args: [
+            '-y',
+            '@modelcontextprotocol/server-gitlab'
+        ],
+        env: {
+            GITLAB_PERSONAL_ACCESS_TOKEN: env.GITLAB_TOKEN,
+            GITLAB_API_URL: env.GITLAB_URL.replace(/\/$/, '') + '/api/v4'
+        }
+    },
     'twenty-crm': {
         command: 'npx',
         args: ['-y', 'twenty-crm-mcp-server'],
