@@ -1,4 +1,3 @@
-// Parse 'YYYY-MM-DD' (hoặc ISO) → Date. Trả null nếu rỗng.
 export function parseDate(value) {
     if (!value) return null;
     const d = new Date(value);
@@ -6,7 +5,6 @@ export function parseDate(value) {
     return d;
 }
 
-// Build filter { $gte, $lte } cho field thời gian. `to` dạng date-only được đẩy tới cuối ngày.
 export function dateRangeFilter(from, to) {
     const range = {};
     if (from) range.$gte = parseDate(from);

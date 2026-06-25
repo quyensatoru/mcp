@@ -1,6 +1,5 @@
 import { gunzipSync } from 'node:zlib';
 
-// Giải nén dữ liệu rrweb Event.data / Snapshot.type2 (gzip + base64)
 export function decompress(fieldValue) {
     if (!fieldValue) return fieldValue;
     if (fieldValue.compressed) {

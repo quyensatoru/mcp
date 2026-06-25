@@ -1,7 +1,6 @@
 import { errorContent } from './format.helper.js';
 import { logger } from '@mida/logger';
 
-// Bọc handler tool: bắt lỗi → trả errorContent thay vì throw ra transport.
 export function wrap(name, fn) {
     return async (args) => {
         try {

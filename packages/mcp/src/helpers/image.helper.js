@@ -1,7 +1,6 @@
 import { PNG } from 'pngjs';
 import pixelmatch from 'pixelmatch';
 
-// So sánh 2 PNG buffer, trả về { diffBuffer, diffPercent }
 export function diffImages(bufA, bufB) {
     const imgA = PNG.sync.read(bufA);
     const imgB = PNG.sync.read(bufB);

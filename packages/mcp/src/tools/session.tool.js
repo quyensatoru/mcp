@@ -6,7 +6,6 @@ import { cacheKey, withCache } from '../helpers/redis.helper.js';
 import { textContent, errorContent, abbreviate, maskEmail } from '../helpers/format.helper.js';
 import { dateRangeFilter } from '../helpers/validate.helper.js';
 import { toObjectId } from '../helpers/objectid.helper.js';
-import { replayLink, heatmapLink, mdLink } from '../helpers/url.helper.js';
 import { wrap } from '../helpers/tool.helper.js';
 
 const TTL = 120;
@@ -16,7 +15,7 @@ function formatSessionList(sessions, domain) {
     if (!sessions.length) return `No sessions match the filter for ${domain}.`;
     const rows = sessions.map((s, i) => {
         const flags = [s.frustrated && 'frustrated', s.status === false && 'open'].filter(Boolean);
-        const head = `${i + 1}. ${s.device ?? '?'}/${s.browser ?? '?'} · ${s.location ?? '?'} · ${s.duration ?? 0}s · ${s.page_per_session ?? 0}pv${flags.length ? ` · ${flags.join(',')}` : ''} — ${mdLink('View Replay', replayLink(s._id))}`;
+        const head = `${i + 1}. ${s.device ?? '?'}/${s.browser ?? '?'} · ${s.location ?? '?'} · ${s.duration ?? 0}s · ${s.page_per_session ?? 0}pv${flags.length ? ` · ${flags.join(',')}` : ''}`;
         const sub = `   key: ${s.key ?? '—'} · ${maskEmail(s.customer_email)} · ${s.last_active ? new Date(s.last_active).toISOString() : '—'}`;
         return `${head}\n${sub}`;
     });
@@ -30,7 +29,7 @@ function formatSessionDetail(data, domain) {
         `  device: ${session.device ?? '?'}/${session.browser ?? '?'}/${session.os ?? '?'} · ${session.location ?? '?'}`,
         `  duration: ${session.duration ?? 0}s (active ${session.active_duration ?? 0}s) · pages: ${counts.pageviews} · status: ${session.status ? 'closed' : 'open'}`,
         `  frustrated: ${session.frustrated ? 'yes' : 'no'} · clicks: ${session.click_count ?? 0} · last_active: ${session.last_active ? new Date(session.last_active).toISOString() : '—'}`,
-        `  customer: ${maskEmail(session.customer_email)} · ${mdLink('View Replay', replayLink(session._id))}`,
+        `  customer: ${maskEmail(session.customer_email)}`,
         '',
         `Counts: ${counts.pageviews} pageviews · ${counts.events} rrweb events · ${counts.behaviors} behaviors`,
     ];
@@ -50,7 +49,7 @@ function formatPageList(pages, domain) {
     if (!pages.length) return `No pages match for ${domain}.`;
     const rows = pages.map(
         (p, i) =>
-            `${i + 1}. ${p.title ?? '(no title)'} · hm:${p.hmEnabled ? 'on' : 'off'} — ${mdLink('View Heatmap', heatmapLink(p._id))}\n   ${abbreviate(p.address, 80)}`,
+            `${i + 1}. ${p.title ?? '(no title)'} · hm:${p.hmEnabled ? 'on' : 'off'}\n   ${abbreviate(p.address, 80)}`,
     );
     return [`${pages.length} pages — ${domain}:`, '', ...rows].join('\n');
 }

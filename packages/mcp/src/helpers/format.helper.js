@@ -1,5 +1,3 @@
-// Primitives cho output plain-text gửi AI. Domain formatter co-located trong từng tool.
-
 const SECRET_KEYS = new Set(['access_token', 'accessToken', 'password', 'secret', 'token', 'jwt']);
 
 export function redact(value) {
@@ -28,7 +26,6 @@ export function maskEmail(email) {
     return `${name.slice(0, 2)}***@${host}`;
 }
 
-// Gom title + các dòng con (thụt lề) thành 1 block text.
 export function section(title, lines) {
     return [title, ...lines.filter(Boolean).map((l) => `  ${l}`)].join('\n');
 }

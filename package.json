@@ -7,6 +7,7 @@
     "author": "quyenpv",
     "type": "module",
     "scripts": {
+        "dev": "concurrently \"npm run dev --workspace=@mida/mcp\" \"npm run dev --workspace=@mida/agent\"",
         "mcp": "pnpm --filter mida-mcp",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
@@ -14,6 +15,7 @@
     },
     "devDependencies": {
         "@eslint/js": "^9.5.0",
+        "concurrently": "^10.0.3",
         "eslint": "^9.5.0",
         "globals": "^15.6.0",
         "husky": "^9.0.11",
@@ -24,11 +26,20 @@
         "express": "^5.2.1",
         "zod": "^4.4.3"
     },
+    "workspaces": [
+        "packages/*"
+    ],
     "pnpm": {
         "supportedArchitectures": {
-            "os": ["linux"],
-            "cpu": ["x64"],
-            "libc": ["glibc"]
+            "os": [
+                "linux"
+            ],
+            "cpu": [
+                "x64"
+            ],
+            "libc": [
+                "glibc"
+            ]
         }
     }
 }

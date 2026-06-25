@@ -54,8 +54,6 @@ src/
 
 1. **Heatmap field**: model `clickv2`/`movev2`/`scrollv3` đang để `strict:false` + field giả định
    (x,y,counts,selector,device,type/depth). Đối chiếu sample doc thật để chốt formatter.
-2. **`MIDA_DASHBOARD_URL`**: path link replay/heatmap trong `helpers/url.helper.js` đang là dự đoán
-   (`/recordings`, `/heatmaps`) — cần xác nhận path thật.
 
 ## Chạy
 

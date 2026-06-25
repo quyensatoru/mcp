@@ -25,8 +25,6 @@ const envSchema = z.object({
     REDIS_URL: z.string().optional(),
     CACHE_TTL: z.coerce.number().default(300),
 
-    MIDA_DASHBOARD_URL: z.string().url().default('https://app.getmida.com'),
-
     FIRECRAWL_API_KEY: z.string().optional(),
     MIDA_DOCS_URL: z.string().url().optional(),
 });

@@ -25,4 +25,26 @@ export const mcpServers = {
             TWENTY_BASE_URL: env.TWENTY_BASE_URL,
         },
     },
+    'mida-rsa': {
+        command: 'npx',
+        args: [
+            '-y',
+            'mcp-remote',
+            env.MIDA_MCP_URL,
+            '--header',
+            `Authorization:Bearer ${env.MIDA_MCP_TOKEN}`
+        ]
+    },
+    'google-workspace': {
+        command: 'npx',
+        args: [
+            '-y',
+            'gws-mcp-server',
+            '--services', 'gmail,drive,calendar'
+        ],
+        env: {
+            GOOGLE_WORKSPACE_CLI_CLIENT_ID: env.GOOGLE_CLIENT_ID,
+            GOOGLE_WORKSPACE_CLI_CLIENT_SECRET: env.GOOGLE_CLIENT_SECRET,
+        }
+    }
 };

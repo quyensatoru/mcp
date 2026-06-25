@@ -34,6 +34,9 @@ const envSchema = z.object({
 
     TWENTY_API_KEY: z.string().optional(),
     TWENTY_BASE_URL: z.string().optional(),
+
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
