@@ -8,9 +8,10 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..
 const WORK_DIR = path.isAbsolute(env.WORK_DIR ?? '')
     ? env.WORK_DIR
     : path.resolve(REPO_ROOT, env.WORK_DIR ?? 'workspace');
+    
 const CLAUDE_BIN = path.resolve(
     REPO_ROOT,
-    'node_modules/.pnpm/@anthropic-ai+claude-agent-sdk-linux-x64@0.3.185/node_modules/@anthropic-ai/claude-agent-sdk-linux-x64/claude',
+    'node_modules/.pnpm/@anthropic-ai+claude-agent-sdk-linux-x64@0.3.185/node_modules/@anthropic-ai/claude-agent-sdk-linux-x64/claude'
 );
 
 export const createClaudeAgent = (prompt, sessionId, agentOptions = {}) => {
@@ -23,8 +24,7 @@ export const createClaudeAgent = (prompt, sessionId, agentOptions = {}) => {
             systemPrompt: {
                 type: 'preset',
                 preset: 'claude_code',
-                append: [
-                    `
+                append: [`
 ## Using the mida-rsa MCP server for CSE-reported issues
 
 When a CSE (Customer Support Engineer) reports an issue about a shop, session, recording, or analytics behavior, proactively use the \`mida-rsa\` MCP tools to investigate before asking follow-up questions or escalating.
@@ -55,8 +55,7 @@ git checkout -b branch_name
 RULE branch_name:
 bug -> bugfixsupport/{domain}
 IMPORTANT: confirm before create new branch. not create commit, merge request,... (ONLY edit code)
-`,
-                ].join(''),
+`].join("")
             },
             settingSources: ['project', 'user'],
             permissionMode: 'acceptEdits',
