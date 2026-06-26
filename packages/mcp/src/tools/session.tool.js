@@ -137,18 +137,20 @@ export function registerSessionTools(server) {
             const proxy = await resolveProxy(domain);
             const shopId = await ShopService.idByDomain(proxy, domain);
 
-            if(!shopId) {
-                return textContent("Shop not found");
+            if (!shopId) {
+                return textContent('Shop not found');
             }
 
-            const filter = sessionId ? { 
-                shop: toObjectId(shopId), 
-                _id: toObjectId(sessionId) 
-            } : { 
-                shop: toObjectId(shopId), 
-                key: sessionKey 
-            };
-            
+            const filter = sessionId
+                ? {
+                      shop: toObjectId(shopId),
+                      _id: toObjectId(sessionId),
+                  }
+                : {
+                      shop: toObjectId(shopId),
+                      key: sessionKey,
+                  };
+
             const session = await SessionService.findOne(proxy, filter);
             if (!session) return errorContent(`Session not found: ${sessionId ?? sessionKey}`);
 

@@ -71,7 +71,9 @@ export class WorkspaceManager {
                     }
                     logger.debug(`[workspace] created worktree: ${repoName} → ${worktreePath}`);
                 } catch (err) {
-                    logger.warn(`[workspace] worktree setup failed for ${repoName}: ${err.message}`);
+                    logger.warn(
+                        `[workspace] worktree setup failed for ${repoName}: ${err.message}`,
+                    );
                 }
             }),
         );
@@ -103,7 +105,9 @@ export class WorkspaceManager {
                     }
                     logger.debug(`[workspace] removed worktree: ${repoName}`);
                 } catch (err) {
-                    logger.warn(`[workspace] worktree teardown failed for ${repoName}: ${err.message}`);
+                    logger.warn(
+                        `[workspace] worktree teardown failed for ${repoName}: ${err.message}`,
+                    );
                 }
             }),
         );

@@ -11,7 +11,6 @@ const pendingPermissions = new Map();
 const READ_ONLY =
     /\b(get|list|search|find|fetch|read|view|query|retrieve|describe|show|count|stat|info|ping|whoami|preview|check|download)\b/i;
 
-
 const workspaceManager = new WorkspaceManager({ baseWorkDir: WORK_DIR, sessionsDir: SESSIONS_DIR });
 
 workspaceManager.cleanupOld().catch((err) => {

@@ -4,6 +4,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
+import { logger } from '@mida/logger';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '../../..');
@@ -152,7 +153,9 @@ function selectRepos(repos) {
         function cleanup() {
             try {
                 process.stdin.setRawMode(false);
-            } catch {}
+            } catch (e) {
+                logger.error(e);
+            }
             process.stdin.pause();
             process.stdin.removeListener('data', onKey);
         }
