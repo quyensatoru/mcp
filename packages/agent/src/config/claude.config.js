@@ -5,26 +5,33 @@ import { env } from '../config/env.config.js';
 import { mcpServers } from '../config/mcp.config.js';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
-const WORK_DIR = path.isAbsolute(env.WORK_DIR ?? '')
+
+export const WORK_DIR = path.isAbsolute(env.WORK_DIR ?? '')
     ? env.WORK_DIR
     : path.resolve(REPO_ROOT, env.WORK_DIR ?? 'workspace');
-    
+
+export const SESSIONS_DIR = path.isAbsolute(env.SESSIONS_DIR ?? '')
+    ? env.SESSIONS_DIR
+    : path.resolve(REPO_ROOT, env.SESSIONS_DIR ?? 'sessions');
+
 const CLAUDE_BIN = path.resolve(
     REPO_ROOT,
-    'node_modules/.pnpm/@anthropic-ai+claude-agent-sdk-linux-x64@0.3.185/node_modules/@anthropic-ai/claude-agent-sdk-linux-x64/claude'
+    'node_modules/.pnpm/@anthropic-ai+claude-agent-sdk-linux-x64@0.3.185/node_modules/@anthropic-ai/claude-agent-sdk-linux-x64/claude',
 );
 
 export const createClaudeAgent = (prompt, sessionId, agentOptions = {}) => {
+    const cwd = agentOptions.workDir ?? WORK_DIR;
     const agentQuery = query({
         prompt,
         options: {
             pathToClaudeCodeExecutable: CLAUDE_BIN,
             model: env.CLAUDE_MODEL,
-            cwd: WORK_DIR,
+            cwd,
             systemPrompt: {
                 type: 'preset',
                 preset: 'claude_code',
-                append: [`
+                append: [
+                    `
 ## Using the mida-rsa MCP server for CSE-reported issues
 
 When a CSE (Customer Support Engineer) reports an issue about a shop, session, recording, or analytics behavior, proactively use the \`mida-rsa\` MCP tools to investigate before asking follow-up questions or escalating.
@@ -48,16 +55,17 @@ When any of the above is detected:
 5. Summarise your findings clearly and suggest next steps to the CSE.
 
 Do NOT wait for the CSE to explicitly ask you to call the mida-rsa tools — use them automatically whenever the context indicates a support investigation.
-With case change code please create a new branch from master 
+With case change code please create a new branch from master
 \`\`\`bash
 git checkout -b branch_name
 \`\`\`
 RULE branch_name:
 bug -> bugfixsupport/{domain}
 IMPORTANT: confirm before create new branch. not create commit, merge request,... (ONLY edit code)
-`].join("")
+`,
+                ].join(''),
             },
-            settingSources: ['project', 'user'],
+            settingSources: ['project'],
             permissionMode: 'acceptEdits',
             ...(sessionId ? { resume: sessionId } : {}),
             mcpServers: mcpServers,

@@ -1,5 +1,6 @@
 import { logger } from '@mida/logger';
-import { createClaudeAgent } from '../config/claude.config.js';
+import { WorkspaceManager } from '@mida/workspace';
+import { createClaudeAgent, WORK_DIR, SESSIONS_DIR } from '../config/claude.config.js';
 import { sessionStorageModel } from '../schema/session-storage.schema.js';
 import { MATTERMOST_LOADING } from '../constants/cdn.constants.js';
 
@@ -9,6 +10,13 @@ const pendingPermissions = new Map();
 
 const READ_ONLY =
     /\b(get|list|search|find|fetch|read|view|query|retrieve|describe|show|count|stat|info|ping|whoami|preview|check|download)\b/i;
+
+
+const workspaceManager = new WorkspaceManager({ baseWorkDir: WORK_DIR, sessionsDir: SESSIONS_DIR });
+
+workspaceManager.cleanupOld().catch((err) => {
+    logger.warn('[workspace] startup cleanup error:', err.message);
+});
 
 function makeStreamUpdater(client, postId, loading) {
     let buffer = [];
@@ -61,7 +69,7 @@ function buildCanUseTool(client, channelId, rootId) {
 
         const key = `${channelId}:${rootId}`;
         const toolUseID = options?.toolUseID;
-        logger.log(
+        logger.info(
             '[TOOL] ' +
                 toolName +
                 ' => waiting approval | key:' +
@@ -205,10 +213,20 @@ export const handleEvent = async (client, e) => {
     const updater = makeStreamUpdater(client, reply.id, MATTERMOST_LOADING);
     const canUseTool = buildCanUseTool(client, post.channel_id, rootId);
 
+    let workDir;
+    try {
+        workDir = await workspaceManager.setup(rootId);
+        logger.info(`[workspace] session workspace: ${workDir}`);
+    } catch (err) {
+        logger.error(`[workspace] setup failed, falling back to shared workspace: ${err.message}`);
+        workDir = WORK_DIR;
+    }
+
     try {
         const message = post.message.replaceAll('@bssc_sa_th_agent_bot', '');
         const { query: stream } = createClaudeAgent(message, session?.sessionId || '', {
             canUseTool,
+            workDir,
         });
 
         for await (const event of stream) {

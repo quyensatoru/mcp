@@ -1,0 +1,13 @@
+{
+    "name": "@mida/workspace",
+    "version": "1.0.0",
+    "description": "Git worktree lifecycle management for isolated agent sessions",
+    "type": "module",
+    "main": "src/index.js",
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@mida/logger": "workspace:*"
+    }
+}

@@ -22,6 +22,7 @@ const envSchema = z.object({
 
     MONGO_URI: z.string().optional(),
     WORK_DIR: z.string().optional(),
+    SESSIONS_DIR: z.string().optional(),
 
     GITLAB_TOKEN: z.string().optional(),
     GITLAB_URL: z.string().url().default('https://gitlab.com'),

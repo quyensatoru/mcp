@@ -2,7 +2,7 @@ import { logger } from '@mida/logger';
 
 export const hooks = {
     SessionStart: (input) => {
-        logger.log('[HOOK] SessionStart — cwd:', input.cwd, 'model:', input.model);
+        logger.info('[HOOK] SessionStart — cwd:', input.cwd, 'model:', input.model);
         // save session to storage
 
         return {};
@@ -20,13 +20,13 @@ export const hooks = {
     },
 
     PostToolUse: (input) => {
-        logger.log(`[HOOK] PostToolUse: ${input.tool_name} →`, input.tool_output?.slice?.(0, 120));
+        logger.info(`[HOOK] PostToolUse: ${input.tool_name} →`, input.tool_output?.slice?.(0, 120));
         return {};
     },
 
     PermissionRequest: (input) => {
         const { tool_name, tool_input } = input;
-        logger.log(
+        logger.info(
             `[HOOK] Permission request for '${tool_name}':`,
             JSON.stringify(tool_input).slice(0, 80),
         );
