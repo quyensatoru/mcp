@@ -21,7 +21,11 @@ function formatDailyRow(a) {
 
 function formatAnalyticsDaily(analytics, domain, from, to) {
     if (!analytics.length) return `No analytics for ${domain} (${from} → ${to}).`;
-    return [`Analytics ${domain} (${from} → ${to}) — ${analytics.length} days:`, '', ...analytics.map(formatDailyRow)].join('\n');
+    return [
+        `Analytics ${domain} (${from} → ${to}) — ${analytics.length} days:`,
+        '',
+        ...analytics.map(formatDailyRow),
+    ].join('\n');
 }
 
 function formatConversionFunnel(analytics, domain, from, to) {

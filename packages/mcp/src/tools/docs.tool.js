@@ -22,7 +22,13 @@ export function registerDocsTool(server) {
                 'Search the Mida documentation (help center). Use to confirm the expected/correct behavior of a feature before concluding, or to back a customer-facing answer with an authoritative reference.',
             inputSchema: z.object({
                 query: z.string().describe('Search keywords'),
-                topK: z.number().int().min(1).max(10).default(5).describe('Number of results to return'),
+                topK: z
+                    .number()
+                    .int()
+                    .min(1)
+                    .max(10)
+                    .default(5)
+                    .describe('Number of results to return'),
             }),
         },
         wrap('docs_search', async ({ query, topK }) => {

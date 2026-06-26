@@ -48,8 +48,16 @@ export const RecordingService = {
     async replicaLag(proxy, shopId) {
         const proj = { last_active: 1, updatedAt: 1 };
         const [latestApi, latestRec] = await Promise.all([
-            SessionModels[proxy].findOne({ shop: shopId }, proj).sort({ last_active: -1 }).lean().exec(),
-            RecorderSessionModels[proxy].findOne({ shop: shopId }, proj).sort({ last_active: -1 }).lean().exec(),
+            SessionModels[proxy]
+                .findOne({ shop: shopId }, proj)
+                .sort({ last_active: -1 })
+                .lean()
+                .exec(),
+            RecorderSessionModels[proxy]
+                .findOne({ shop: shopId }, proj)
+                .sort({ last_active: -1 })
+                .lean()
+                .exec(),
         ]);
         const apiTs = latestApi?.last_active ?? latestApi?.updatedAt ?? null;
         const recTs = latestRec?.last_active ?? latestRec?.updatedAt ?? null;
@@ -69,7 +77,10 @@ export const RecordingService = {
                 .lean()
                 .exec(),
             AnalyticMissingModels[proxy]
-                .find({ shop: shopId, ...(created ? { date: created } : {}) }, { date: 1, count_session: 1 })
+                .find(
+                    { shop: shopId, ...(created ? { date: created } : {}) },
+                    { date: 1, count_session: 1 },
+                )
                 .sort({ date: -1 })
                 .limit(30)
                 .lean()

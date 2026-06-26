@@ -34,11 +34,15 @@ function formatSessionDetail(data, domain) {
         `Counts: ${counts.pageviews} pageviews · ${counts.events} rrweb events · ${counts.behaviors} behaviors`,
     ];
     if (visitor)
-        lines.push(`Visitor: ${visitor._id} · ${visitor.device ?? '?'} · ${visitor.location ?? '?'}`);
+        lines.push(
+            `Visitor: ${visitor._id} · ${visitor.device ?? '?'} · ${visitor.location ?? '?'}`,
+        );
     if (pageviews.length) {
         lines.push('', 'Pageviews:');
         pageviews.forEach((p, i) =>
-            lines.push(`  ${i + 1}. [${p.page_type ?? '?'}] ${abbreviate(p.href, 70)} (${p.theme_template ?? '—'})`),
+            lines.push(
+                `  ${i + 1}. [${p.page_type ?? '?'}] ${abbreviate(p.href, 70)} (${p.theme_template ?? '—'})`,
+            ),
         );
     }
     if (flags.length) lines.push('', 'Flags:', ...flags.map((f) => `  ⚠️ ${f}`));
@@ -72,13 +76,25 @@ export function registerSessionTools(server) {
                 'List recorded sessions filtered by device, location, frustration, customer email, or date range. Each row includes a replay link. Use to find specific sessions to inspect — e.g. frustrated users or a given customer’s visits.',
             inputSchema: z.object({
                 domain: z.string().describe('Shopify domain'),
-                device: z.enum(['Desktop', 'Mobile', 'Tablet']).optional().describe('Filter by device type'),
-                location: z.string().optional().describe('Filter by location (country/region string)'),
+                device: z
+                    .enum(['Desktop', 'Mobile', 'Tablet'])
+                    .optional()
+                    .describe('Filter by device type'),
+                location: z
+                    .string()
+                    .optional()
+                    .describe('Filter by location (country/region string)'),
                 frustrated: z.boolean().optional().describe('Only frustrated sessions when true'),
                 customer_email: z.string().optional().describe('Filter by exact customer email'),
                 dateFrom: z.string().optional().describe('Start date YYYY-MM-DD (by createdAt)'),
                 dateTo: z.string().optional().describe('End date YYYY-MM-DD (by createdAt)'),
-                limit: z.number().int().min(1).max(100).default(20).describe('Max sessions to return'),
+                limit: z
+                    .number()
+                    .int()
+                    .min(1)
+                    .max(100)
+                    .default(20)
+                    .describe('Max sessions to return'),
             }),
         },
         wrap('session_list', async (args) => {
@@ -95,8 +111,10 @@ export function registerSessionTools(server) {
             const created = dateRangeFilter(f.dateFrom, f.dateTo);
             if (created) filter.createdAt = created;
 
-            const sessions = await withCache(cacheKey('session_list', { proxy, filter, limit }), TTL, () =>
-                SessionService.list(proxy, filter, limit),
+            const sessions = await withCache(
+                cacheKey('session_list', { proxy, filter, limit }),
+                TTL,
+                () => SessionService.list(proxy, filter, limit),
             );
             return textContent(formatSessionList(sessions, domain));
         }),
@@ -130,13 +148,23 @@ export function registerSessionTools(server) {
             ]);
 
             const flags = [];
-            if (!pageviews.length) flags.push('Session exists but has 0 PageViews — ingest/queue may have failed');
-            else if (events === 0) flags.push('PageViews exist but 0 rrweb Events — recorder sent no data or consumer dropped it');
+            if (!pageviews.length)
+                flags.push('Session exists but has 0 PageViews — ingest/queue may have failed');
+            else if (events === 0)
+                flags.push(
+                    'PageViews exist but 0 rrweb Events — recorder sent no data or consumer dropped it',
+                );
             if (session.status === false) flags.push('Session not closed (status=false)');
 
             return textContent(
                 formatSessionDetail(
-                    { session, visitor, pageviews, counts: { pageviews: pageviews.length, events, behaviors }, flags },
+                    {
+                        session,
+                        visitor,
+                        pageviews,
+                        counts: { pageviews: pageviews.length, events, behaviors },
+                        flags,
+                    },
                     domain,
                 ),
             );
@@ -165,8 +193,10 @@ export function registerSessionTools(server) {
                 const rx = new RegExp(escapeRegex(q), 'i');
                 filter.$or = [{ title: rx }, { address: rx }];
             }
-            const pages = await withCache(cacheKey('page_list', { proxy, shopId, q, limit }), TTL, () =>
-                SessionService.pages(proxy, filter, limit),
+            const pages = await withCache(
+                cacheKey('page_list', { proxy, shopId, q, limit }),
+                TTL,
+                () => SessionService.pages(proxy, filter, limit),
             );
             return textContent(formatPageList(pages, domain));
         }),
@@ -180,9 +210,21 @@ export function registerSessionTools(server) {
                 'Behavior events (cart, funnel, UX issues) for a session or a pageview. Use to inspect what actions a user took, or to diagnose cart/checkout funnel behavior at the event level.',
             inputSchema: z.object({
                 domain: z.string().describe('Shopify domain'),
-                sessionId: z.string().optional().describe('Session ObjectId (all behaviors of the session)'),
-                pageViewId: z.string().optional().describe('PageView ObjectId (behaviors of one pageview)'),
-                limit: z.number().int().min(1).max(200).default(50).describe('Max events to return'),
+                sessionId: z
+                    .string()
+                    .optional()
+                    .describe('Session ObjectId (all behaviors of the session)'),
+                pageViewId: z
+                    .string()
+                    .optional()
+                    .describe('PageView ObjectId (behaviors of one pageview)'),
+                limit: z
+                    .number()
+                    .int()
+                    .min(1)
+                    .max(200)
+                    .default(50)
+                    .describe('Max events to return'),
             }),
         },
         wrap('behavior_events', async ({ domain, sessionId, pageViewId, limit }) => {

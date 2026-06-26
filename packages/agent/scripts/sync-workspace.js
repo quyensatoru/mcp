@@ -18,9 +18,7 @@ const {
     WORK_DIR = 'workspace',
 } = process.env;
 
-const WORK_DIR_ABS = path.isAbsolute(WORK_DIR)
-    ? WORK_DIR
-    : path.resolve(REPO_ROOT, WORK_DIR);
+const WORK_DIR_ABS = path.isAbsolute(WORK_DIR) ? WORK_DIR : path.resolve(REPO_ROOT, WORK_DIR);
 
 const c = {
     reset: '\x1b[0m',
@@ -277,7 +275,6 @@ async function main() {
         process.exit(1);
     }
 
-
     console.log(c.bold('\n  GitLab Workspace Sync'));
     console.log(c.dim(`  Group : ${GITLAB_PROJECT_ID}`));
     console.log(c.dim(`  Target: ${WORK_DIR_ABS}\n`));
@@ -319,7 +316,11 @@ async function main() {
     } catch (err) {
         if (err.code === 'EACCES') {
             console.error(c.red(`  ✗ Permission denied: cannot create ${WORK_DIR_ABS}`));
-            console.error(c.dim(`    Fix: sudo mkdir -p ${WORK_DIR_ABS} && sudo chown $USER:$USER ${WORK_DIR_ABS}`));
+            console.error(
+                c.dim(
+                    `    Fix: sudo mkdir -p ${WORK_DIR_ABS} && sudo chown $USER:$USER ${WORK_DIR_ABS}`,
+                ),
+            );
             console.error(c.dim(`    Or set WORK_DIR to a writable path in .env\n`));
             process.exit(1);
         }

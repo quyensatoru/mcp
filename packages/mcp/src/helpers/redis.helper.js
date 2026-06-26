@@ -14,7 +14,7 @@ export async function withCache(key, ttl, fn) {
         const cached = await redis.get(key);
         if (cached) return JSON.parse(cached);
     } catch {
-        logger.info("Tool call result without cache")
+        logger.info('Tool call result without cache');
     }
 
     const result = await fn();

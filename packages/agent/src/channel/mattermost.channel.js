@@ -6,7 +6,10 @@ let _client;
 export const connectMattermost = (callback) => {
     if (_client) return _client;
 
-    const client = new MattermostClient({ url: MattermostEnv.MATTERMOST_URL, token: MattermostEnv.MATTERMOST_TOKEN });
+    const client = new MattermostClient({
+        url: MattermostEnv.MATTERMOST_URL,
+        token: MattermostEnv.MATTERMOST_TOKEN,
+    });
 
     const ws = new WebSocket(
         MattermostEnv.MATTERMOST_URL.replace(/\/$/, '').replace(/^https:/, 'wss:') +
@@ -31,7 +34,7 @@ export const connectMattermost = (callback) => {
     });
 
     ws.addEventListener('message', async (e) => {
-        typeof callback === "function" && await callback(_client, e)
+        typeof callback === 'function' && (await callback(_client, e));
     });
 
     _client = client;

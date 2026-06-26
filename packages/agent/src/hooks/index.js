@@ -1,4 +1,4 @@
-import { logger } from "@mida/logger";
+import { logger } from '@mida/logger';
 
 export const hooks = {
     SessionStart: (input) => {

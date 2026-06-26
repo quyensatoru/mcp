@@ -4,7 +4,7 @@ const sessionStorageSchema = new mongoose.Schema(
     {
         sessionId: String,
         threadId: String,
-        channelId: String
+        channelId: String,
     },
     {
         versionKey: false,
@@ -12,6 +12,6 @@ const sessionStorageSchema = new mongoose.Schema(
     },
 );
 
-sessionStorageSchema.index({ sessionId: 1 })
+sessionStorageSchema.index({ sessionId: 1 });
 
 export const sessionStorageModel = mongoose.model('SessionStorage', sessionStorageSchema);

@@ -34,7 +34,15 @@ export const SessionService = {
         PageViewModels[proxy]
             .find(
                 { session: sessionId },
-                { href: 1, page_type: 1, theme_template: 1, start_time: 1, end_time: 1, status: 1, page: 1 },
+                {
+                    href: 1,
+                    page_type: 1,
+                    theme_template: 1,
+                    start_time: 1,
+                    end_time: 1,
+                    status: 1,
+                    page: 1,
+                },
             )
             .lean()
             .exec(),
@@ -54,5 +62,9 @@ export const SessionService = {
         visitorId ? VisitorModels[proxy].findById(visitorId).lean().exec() : null,
 
     pages: (proxy, filter, limit) =>
-        PageModels[proxy].find(filter, { address: 1, title: 1, hmEnabled: 1 }).limit(limit).lean().exec(),
+        PageModels[proxy]
+            .find(filter, { address: 1, title: 1, hmEnabled: 1 })
+            .limit(limit)
+            .lean()
+            .exec(),
 };

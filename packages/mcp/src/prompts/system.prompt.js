@@ -48,7 +48,8 @@ export function registerSystemPrompt(server) {
         'mida_system_prompt',
         {
             title: 'Mida System Prompt',
-            description: 'Defines the data & diagnostics assistant behavior and tool-routing for Mida.',
+            description:
+                'Defines the data & diagnostics assistant behavior and tool-routing for Mida.',
         },
         () => ({
             messages: [{ role: 'user', content: { type: 'text', text: SYSTEM_PROMPT } }],

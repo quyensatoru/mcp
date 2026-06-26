@@ -20,16 +20,16 @@ domain → proxy (chọn shard 1|2)
 
 ## Bộ công cụ (18 tool)
 
-| Nhóm | Tool |
-|---|---|
-| Shop (bước 0) | `shop_overview` |
-| Analytics (api) | `analytics_daily`, `conversion_funnel` |
-| Session (api) | `session_list`, `session_detail`, `page_list`, `behavior_events` |
-| Heatmap | `heatmap_click`, `heatmap_scroll`, `heatmap_page_insight` |
-| Recording | `recording_integrity`, `recording_missing` |
+| Nhóm                      | Tool                                                                  |
+| ------------------------- | --------------------------------------------------------------------- |
+| Shop (bước 0)             | `shop_overview`                                                       |
+| Analytics (api)           | `analytics_daily`, `conversion_funnel`                                |
+| Session (api)             | `session_list`, `session_detail`, `page_list`, `behavior_events`      |
+| Heatmap                   | `heatmap_click`, `heatmap_scroll`, `heatmap_page_insight`             |
+| Recording                 | `recording_integrity`, `recording_missing`                            |
 | Replay (rrweb/Playwright) | `replay_events`, `replay_render`, `screenshot_url`, `replay_diagnose` |
-| Docs | `docs_search` |
-| System | `ping` |
+| Docs                      | `docs_search`                                                         |
+| System                    | `ping`                                                                |
 
 Mỗi tool theo shop: `domain` bắt buộc → `resolveProxy` → service (`Models[proxy]`) → cache Redis →
 formatter plain-text (co-located trong tool). Lỗi trả `errorContent`. Token/PII bị redact.
