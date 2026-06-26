@@ -51,7 +51,7 @@ export const mcpServers = {
         args: [
             '-y',
             'gws-mcp-server',
-            '--services', 'gmail,drive,calendar'
+            '--services', 'gmail,drive,calendar,sheets'
         ],
         env: {
             GOOGLE_WORKSPACE_CLI_CLIENT_ID: env.GOOGLE_CLIENT_ID,

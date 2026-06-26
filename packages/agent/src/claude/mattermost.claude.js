@@ -5,10 +5,9 @@ import { MATTERMOST_LOADING } from '../constants/cdn.constants.js';
 
 let botUserId = null;
 
-// key -> [{resolve, timer, toolUseID, toolName, input}, ...] — queue per thread so concurrent tool calls don't overwrite each other
 const pendingPermissions = new Map();
 
-const READ_ONLY_RE = /\b(get|list|search|find|fetch|read|view|query|retrieve|describe|show|count|stat|info|ping|whoami|preview|check|download)\b/i;
+const READ_ONLY = /\b(get|list|search|find|fetch|read|view|query|retrieve|describe|show|count|stat|info|ping|whoami|preview|check|download)\b/i;
 
 function makeStreamUpdater(client, postId, loading) {
     let buffer = [];
@@ -41,30 +40,47 @@ function makeStreamUpdater(client, postId, loading) {
 
 function buildCanUseTool(client, channelId, rootId) {
     return async (toolName, input, options) => {
-        if (!toolName.startsWith('mcp__')) return { behavior: 'allow', updatedInput: input };
 
+        if (!toolName.startsWith('mcp__')) {
+            return { behavior: 'allow', updatedInput: input };
+        }
+
+        // pypass read only tool
         const localName = toolName.split('__').pop() ?? '';
-        if (READ_ONLY_RE.test(localName)) return { behavior: 'allow', updatedInput: input };
+        if (READ_ONLY.test(localName)) {
+            return { behavior: 'allow', updatedInput: input };
+        }
 
         const key = `${channelId}:${rootId}`;
         const toolUseID = options?.toolUseID;
-        console.log('[TOOL]', toolName, '=> waiting approval | key:', key, '| toolUseID:', toolUseID);
+        logger.log('[TOOL] ' + toolName + ' => waiting approval | key:' + key + ' | toolUseID:' + toolUseID);
 
         const desc = options?.description ? `\n_${options.description}_` : '';
         const inputPreview = JSON.stringify(input, null, 2).slice(0, 500);
 
         return new Promise((resolve) => {
+
             const timer = setTimeout(() => {
                 const queue = pendingPermissions.get(key);
+
                 if (queue) {
                     const idx = queue.findIndex((p) => p.resolve === resolve);
-                    if (idx !== -1) queue.splice(idx, 1);
-                    if (queue.length === 0) pendingPermissions.delete(key);
+
+                    if (idx !== -1) {
+                        queue.splice(idx, 1);
+                    }
+
+                    if (queue.length === 0) {
+                        pendingPermissions.delete(key);
+                    }
                 }
+
                 resolve({ behavior: 'deny', message: 'Timeout: không có phản hồi trong 120s' });
+
             }, 120_000);
 
             const queue = pendingPermissions.get(key) ?? [];
+
             queue.push({ resolve, timer, toolUseID, toolName, input });
             pendingPermissions.set(key, queue);
 
@@ -80,27 +96,42 @@ function buildCanUseTool(client, channelId, rootId) {
                 ].join('\n'),
                 { rootId },
             ).catch((err) => {
-                logger.warn('[canUseTool] Failed to send approval post:', err.message);
+                logger.warn('[canUseTool] Failed to send approval post: ' + err.message);
                 const q = pendingPermissions.get(key);
+
                 if (q) {
                     const idx = q.findIndex((p) => p.resolve === resolve);
-                    if (idx !== -1) q.splice(idx, 1);
-                    if (q.length === 0) pendingPermissions.delete(key);
+
+                    if (idx !== -1) {
+                        q.splice(idx, 1);
+                    }
+
+                    if (q.length === 0) {
+                        pendingPermissions.delete(key);
+                    }
                 }
-                console.log("resolved")
                 clearTimeout(timer);
-                resolve({ behavior: 'deny', message: `Không thể gửi yêu cầu xác nhận: ${err.message}` });
+
+                resolve({ 
+                    behavior: 'deny', 
+                    message: `Không thể gửi yêu cầu xác nhận: ${err.message}` 
+                });
             });
         });
     };
 }
 
 export const handleEvent = async (client, e) => {
-    let msg;
-    try { msg = JSON.parse(e.data); } catch { return; }
-    if (msg.event !== 'posted') return;
+    let message;
+    try { 
+        message = JSON.parse(e.data); 
+    } catch { 
+        return; 
+    }
+    
+    if (message.event !== 'posted') return;
 
-    const post = JSON.parse(msg.data.post);
+    const post = JSON.parse(message.data.post);
     const rootId = post.root_id || post.id;
 
     const session = await sessionStorageModel.findOne({
@@ -111,26 +142,31 @@ export const handleEvent = async (client, e) => {
     if (!botUserId) botUserId = (await client.getMe()).id;
     if (post.user_id === botUserId) return;
 
-    // Check if this message is a user reply to a pending permission request
     const permKey = `${post.channel_id}:${rootId}`;
     const permQueue = pendingPermissions.get(permKey);
+
     console.log('[PERM] check key:', permKey, '| queue length:', permQueue?.length ?? 0);
-    console.log(permQueue);
+
     if (permQueue?.length > 0) {
-        const pending = permQueue.shift(); // FIFO — resolve oldest pending tool first
+        const pending = permQueue.shift();
         if (permQueue.length === 0) pendingPermissions.delete(permKey);
+
         clearTimeout(pending.timer);
+
         const lower = post.message.toLowerCase().trim();
         const allow = /^(yes|y|ok|có|co|✅|1)(\s|$)/i.test(lower);
+
         console.log('[PERM] resolving tool:', pending.toolName, '| toolUseID:', pending.toolUseID, '| allow:', allow, `| remaining queue: ${permQueue.length}`);
 
         pending.resolve(allow
             ? { behavior: 'allow', updatedInput: pending.input, toolUseID: pending.toolUseID }
             : { behavior: 'deny', message: 'Người dùng từ chối thực thi' });
+
         await client.createPost(post.channel_id,
             allow ? '✅ Đã cho phép. Agent tiếp tục thực thi...' : '❌ Đã từ chối. Agent dừng thực thi.',
             { rootId },
         );
+
         return;
     }
 
@@ -138,10 +174,10 @@ export const handleEvent = async (client, e) => {
 
     const reply = await client.createPost(post.channel_id, MATTERMOST_LOADING, { rootId });
     const updater = makeStreamUpdater(client, reply.id, MATTERMOST_LOADING);
+    const canUseTool = buildCanUseTool(client, post.channel_id, rootId);
 
     try {
         const message = post.message.replaceAll("@bssc_sa_th_agent_bot", "");
-        const canUseTool = buildCanUseTool(client, post.channel_id, rootId);
         const { query: stream } = createClaudeAgent(message, session?.sessionId || "", { canUseTool });
 
         for await (const event of stream) {
@@ -173,7 +209,6 @@ export const handleEvent = async (client, e) => {
             if (event.type !== 'assistant') continue;
 
             for (const block of event.message?.content ?? []) {
-                console.log(block)
                 switch (block.type) {
                     case "text":
                         updater.stripLoading();
@@ -181,9 +216,9 @@ export const handleEvent = async (client, e) => {
                         break;
                     case "tool_use": {
                         updater.stripLoading();
-                        const name = block.name.slice(0, 40);
+                        const name = block.name;
                         const stringInput = JSON.stringify(block.input || "{}", null, 2)
-                        updater.append(`\n>🔧 ${name}...\n>\`\`\`json\n${stringInput}\n\`\`\``);
+                        updater.append(`\n>🔧 ${name}\n>\`\`\`json\n${stringInput}\n\`\`\``);
                         break;
                     }
                     case "thinking":

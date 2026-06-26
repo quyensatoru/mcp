@@ -7,7 +7,7 @@
     "author": "quyenpv",
     "type": "module",
     "scripts": {
-        "dev": "concurrently \"npm run dev --workspace=@mida/agent\"",
+        "dev": "concurrently -n mcp,agent -c blue,green \"npm run dev --workspace=@mida/mcp\" \"npm run dev --workspace=@mida/agent\"",
         "mcp": "pnpm --filter mida-mcp",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
