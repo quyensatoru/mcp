@@ -41,13 +41,13 @@ pnpm --filter @mida/console dev:web  # vite :5173, proxy /api + /ws → :4000
 
 ## Env
 
-| Biến                 | Mặc định | Mô tả                                                       |
-| -------------------- | -------- | ----------------------------------------------------------- |
-| `CONSOLE_PORT`       | 4000     | Cổng API + dashboard                                        |
-| `CONSOLE_TOKEN`      | —        | Bearer token cho `/api/*` (trống = mở, chỉ dùng dev)        |
-| `MONGO_URI`          | —        | Bắt buộc; fallback `packages/agent/.env`                    |
-| `CONSOLE_MASTER_KEY` | —        | Passphrase mã hóa secret at-rest (set **trước** seed đầu)   |
-| `CONFIG_TTL_MS`      | 30000    | TTL cache config (Mongo standalone không có change stream)  |
+| Biến                 | Mặc định | Mô tả                                                      |
+| -------------------- | -------- | ---------------------------------------------------------- |
+| `CONSOLE_PORT`       | 4000     | Cổng API + dashboard                                       |
+| `CONSOLE_TOKEN`      | —        | Bearer token cho `/api/*` (trống = mở, chỉ dùng dev)       |
+| `MONGO_URI`          | —        | Bắt buộc; fallback `packages/agent/.env`                   |
+| `CONSOLE_MASTER_KEY` | —        | Passphrase mã hóa secret at-rest (set **trước** seed đầu)  |
+| `CONFIG_TTL_MS`      | 30000    | TTL cache config (Mongo standalone không có change stream) |
 
 > Mongo standalone không hỗ trợ change stream → dùng cache TTL. Bấm **↻ Reload** trên dashboard
 > (hoặc `POST /api/config/reload`) để áp dụng ngay thay đổi config từ tiến trình khác.
