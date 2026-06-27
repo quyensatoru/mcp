@@ -2,6 +2,7 @@
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
+import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import { logger } from '@mida/logger';
@@ -157,80 +158,82 @@ function selectRepos(repos) {
                 logger.error(e);
             }
             process.stdin.pause();
-            process.stdin.removeListener('data', onKey);
+            process.stdin.removeListener('keypress', onKey);
         }
 
-        function onKey(key) {
-            switch (key) {
-                // Quit
-                case '\x03': // Ctrl+C
-                case 'q':
-                case 'Q':
-                    cleanup();
-                    process.stdout.write('\n');
-                    reject(new Error('Cancelled'));
-                    return;
+        // readline keypress events normalise keys across platforms — raw ANSI byte
+        // matching ('\x1b[A' …) does not fire reliably for arrows on Windows.
+        function onKey(str, key = {}) {
+            const name = key.name;
 
-                // Confirm
-                case '\r':
-                case '\n':
+            if ((key.ctrl && name === 'c') || name === 'q' || name === 'escape') {
+                cleanup();
+                process.stdout.write('\n');
+                reject(new Error('Cancelled'));
+                return;
+            }
+
+            switch (name) {
+                case 'return':
+                case 'enter':
                     cleanup();
                     process.stdout.write('\n');
                     resolve(repos.filter((_, i) => selected.has(i)));
                     return;
 
-                // Toggle selection
-                case ' ':
+                case 'space':
                     if (selected.has(cursor)) selected.delete(cursor);
                     else selected.add(cursor);
                     break;
 
-                // Toggle all
                 case 'a':
-                case 'A':
                     if (selected.size === repos.length) selected.clear();
                     else repos.forEach((_, i) => selected.add(i));
                     break;
 
-                // Navigation
-                case '\x1b[A': // ↑
+                case 'up':
+                case 'k':
                     cursor = Math.max(0, cursor - 1);
                     adjustScroll();
                     break;
 
-                case '\x1b[B': // ↓
+                case 'down':
+                case 'j':
                     cursor = Math.min(repos.length - 1, cursor + 1);
                     adjustScroll();
                     break;
 
-                case '\x1b[5~': // Page Up
+                case 'pageup':
                     cursor = Math.max(0, cursor - MAX_VISIBLE);
                     adjustScroll();
                     break;
 
-                case '\x1b[6~': // Page Down
+                case 'pagedown':
                     cursor = Math.min(repos.length - 1, cursor + MAX_VISIBLE);
                     adjustScroll();
                     break;
 
-                case '\x1b[H': // Home
+                case 'home':
                     cursor = 0;
                     adjustScroll();
                     break;
 
-                case '\x1b[F': // End
+                case 'end':
                     cursor = repos.length - 1;
                     adjustScroll();
                     break;
+
+                default:
+                    return; // ignore unmapped keys (no redraw / flicker)
             }
 
             draw();
         }
 
+        readline.emitKeypressEvents(process.stdin);
         process.stdin.setRawMode(true);
         process.stdin.resume();
-        process.stdin.setEncoding('utf8');
-        process.stdin.on('data', onKey);
+        process.stdin.on('keypress', onKey);
 
         draw();
     });

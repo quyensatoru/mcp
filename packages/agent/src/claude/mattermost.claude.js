@@ -1,15 +1,12 @@
 import { logger } from '@mida/logger';
 import { WorkspaceManager } from '@mida/workspace';
+import { configService, READ_ONLY_REGEX, YES_REGEX } from '@mida/console';
 import { createClaudeAgent, WORK_DIR, SESSIONS_DIR } from '../config/claude.config.js';
 import { sessionStorageModel } from '../schema/session-storage.schema.js';
-import { MATTERMOST_LOADING } from '../constants/cdn.constants.js';
 
 let botUserId = null;
 
 const pendingPermissions = new Map();
-
-const READ_ONLY =
-    /\b(get|list|search|find|fetch|read|view|query|retrieve|describe|show|count|stat|info|ping|whoami|preview|check|download)\b/i;
 
 const workspaceManager = new WorkspaceManager({ baseWorkDir: WORK_DIR, sessionsDir: SESSIONS_DIR });
 
@@ -17,7 +14,40 @@ workspaceManager.cleanupOld().catch((err) => {
     logger.warn('[workspace] startup cleanup error:', err.message);
 });
 
-function makeStreamUpdater(client, postId, loading) {
+// Caps concurrent agent runs (agentConfig.concurrency / BOT_MAX_CONCURRENCY).
+// Permission replies bypass the gate so a waiting session can always be unblocked.
+class Semaphore {
+    #max;
+    #cur = 0;
+    #queue = [];
+
+    constructor(max) {
+        this.#max = max;
+    }
+    setMax(m) {
+        if (Number.isFinite(m) && m > 0 && m !== this.#max) {
+            this.#max = m;
+            this.#drain();
+        }
+    }
+    async acquire() {
+        while (this.#cur >= this.#max) {
+            await new Promise((resolve) => this.#queue.push(resolve));
+        }
+        this.#cur++;
+    }
+    release() {
+        if (this.#cur > 0) this.#cur--;
+        this.#drain();
+    }
+    #drain() {
+        while (this.#cur < this.#max && this.#queue.length) this.#queue.shift()();
+    }
+}
+
+const sem = new Semaphore(3);
+
+function makeStreamUpdater(client, postId, loading, flushMs = 600) {
     let buffer = [];
     let flushed = [];
     let timer = null;
@@ -37,7 +67,7 @@ function makeStreamUpdater(client, postId, loading) {
                 timer = setTimeout(() => {
                     timer = null;
                     flush();
-                }, 600);
+                }, flushMs);
         },
         stripLoading() {
             if (loading) buffer = buffer.filter((b) => !b.includes(loading));
@@ -54,7 +84,11 @@ function makeStreamUpdater(client, postId, loading) {
     };
 }
 
-function buildCanUseTool(client, channelId, rootId) {
+function buildCanUseTool(client, channelId, rootId, { readOnlyRegex, approvalTimeoutMs }) {
+    const READ_ONLY = new RegExp(readOnlyRegex || READ_ONLY_REGEX, 'i');
+    const timeoutMs = approvalTimeoutMs || 120_000;
+    const timeoutSec = Math.round(timeoutMs / 1000);
+
     return async (toolName, input, options) => {
         if (!toolName.startsWith('mcp__')) {
             return { behavior: 'allow', updatedInput: input };
@@ -96,8 +130,11 @@ function buildCanUseTool(client, channelId, rootId) {
                     }
                 }
 
-                resolve({ behavior: 'deny', message: 'Timeout: không có phản hồi trong 120s' });
-            }, 120_000);
+                resolve({
+                    behavior: 'deny',
+                    message: `Timeout: không có phản hồi trong ${timeoutSec}s`,
+                });
+            }, timeoutMs);
 
             const queue = pendingPermissions.get(key) ?? [];
 
@@ -114,7 +151,7 @@ function buildCanUseTool(client, channelId, rootId) {
                         `\`\`\`json`,
                         inputPreview,
                         `\`\`\``,
-                        `Reply **yes** để cho phép hoặc **no** để từ chối _(tự động từ chối sau 120s)_`,
+                        `Reply **yes** để cho phép hoặc **no** để từ chối _(tự động từ chối sau ${timeoutSec}s)_`,
                     ].join('\n'),
                     { rootId },
                 )
@@ -157,6 +194,8 @@ export const handleEvent = async (client, e) => {
     const post = JSON.parse(message.data.post);
     const rootId = post.root_id || post.id;
 
+    const channel = await configService.getChannelConfig();
+
     const session = await sessionStorageModel.findOne({
         threadId: rootId,
         channelId: post.channel_id,
@@ -177,7 +216,7 @@ export const handleEvent = async (client, e) => {
         clearTimeout(pending.timer);
 
         const lower = post.message.toLowerCase().trim();
-        const allow = /^(yes|y|ok|có|co|✅|1)(\s|$)/i.test(lower);
+        const allow = new RegExp(channel.yesRegex || YES_REGEX, 'i').test(lower);
 
         console.log(
             '[PERM] resolving tool:',
@@ -206,11 +245,16 @@ export const handleEvent = async (client, e) => {
         return;
     }
 
-    if (!post.message.includes('@bssc_sa_th_agent_bot') && !session) return;
+    if (!post.message.includes(channel.botMention) && !session) return;
 
-    const reply = await client.createPost(post.channel_id, MATTERMOST_LOADING, { rootId });
-    const updater = makeStreamUpdater(client, reply.id, MATTERMOST_LOADING);
-    const canUseTool = buildCanUseTool(client, post.channel_id, rootId);
+    const reply = await client.createPost(post.channel_id, channel.loadingGif, { rootId });
+    const updater = makeStreamUpdater(client, reply.id, channel.loadingGif, channel.streamFlushMs);
+
+    const guardrails = await configService.getGuardrails();
+    const canUseTool = buildCanUseTool(client, post.channel_id, rootId, {
+        readOnlyRegex: guardrails.autoApproveReadOnlyRegex,
+        approvalTimeoutMs: channel.approvalTimeoutMs,
+    });
 
     let workDir;
     try {
@@ -221,9 +265,14 @@ export const handleEvent = async (client, e) => {
         workDir = WORK_DIR;
     }
 
+    // Apply the concurrency cap from config; permission replies above are never gated.
+    const agentCfg = await configService.getAgentConfig();
+    sem.setMax(agentCfg.concurrency);
+    await sem.acquire();
+
     try {
-        const message = post.message.replaceAll('@bssc_sa_th_agent_bot', '');
-        const { query: stream } = createClaudeAgent(message, session?.sessionId || '', {
+        const userText = post.message.replaceAll(channel.botMention, '');
+        const { query: stream } = await createClaudeAgent(userText, session?.sessionId || '', {
             canUseTool,
             workDir,
         });
@@ -274,10 +323,10 @@ export const handleEvent = async (client, e) => {
                         break;
                     }
                     case 'thinking':
-                        updater.append(`\n>💭 ${MATTERMOST_LOADING}\n`);
+                        updater.append(`\n>💭 ${channel.loadingGif}\n`);
                         break;
                     case 'redacted_thinking':
-                        updater.append(`\n>🔒 ${MATTERMOST_LOADING}\n`);
+                        updater.append(`\n>🔒 ${channel.loadingGif}\n`);
                         break;
                     default:
                         break;
@@ -290,5 +339,7 @@ export const handleEvent = async (client, e) => {
         logger.error('handleEvent error: ' + err.message);
         updater.append(`\n\n❌ ${err.message}`);
         await updater.done();
+    } finally {
+        sem.release();
     }
 };
