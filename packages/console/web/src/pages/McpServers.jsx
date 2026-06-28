@@ -70,7 +70,7 @@ export default function McpServers({ data, api, reload }) {
                     inline
                     icon={ICON.mcp}
                     title="Chưa có MCP server"
-                    hint="Thêm server để agent gọi tool ngoài (Jira, GitLab, mida-rsa…). Bấm + Add server."
+                    hint="Thêm server để agent gọi tool ngoài (Jira, GitLab, mida-rca…). Bấm + Add server."
                 />
             ) : (
                 <Card>

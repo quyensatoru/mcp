@@ -1,6 +1,6 @@
 # @mida/console
 
-Control-plane cho monorepo mida-rsa: **single source of truth cho cấu hình động** (lưu trong MongoDB),
+Control-plane cho monorepo mida-rca: **single source of truth cho cấu hình động** (lưu trong MongoDB),
 **REST API + WebSocket**, và **dashboard** React để chỉnh config, duyệt/sửa file trong session worktree
 (kiểu VSCode), và chat trực tiếp với agent.
 

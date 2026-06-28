@@ -7,7 +7,7 @@ import { registerAllPrompts } from './prompts/index.js';
 // Một McpServer chỉ connect được tới đúng 1 transport, nên không tái dùng singleton.
 export function createMcpServer() {
     const server = new McpServer({
-        name: 'mida-rsa',
+        name: 'mida-rca',
         version: '1.0.0',
     });
 

@@ -29,10 +29,10 @@ test('defaults: shape + system prompt + secret filtering', () => {
     assert.equal(d.agent.model, 'claude-sonnet-4-6');
     assert.equal(d.agent.permissionMode, 'acceptEdits');
     assert.equal(d.agent.disallowedTools.length, 3);
-    assert.ok(d.agent.systemPromptAppend.includes('mida-rsa'));
+    assert.ok(d.agent.systemPromptAppend.includes('mida-rca'));
 
     assert.equal(d.mcpServers.length, 6);
-    assert.ok(d.mcpServers.find((s) => s.name === 'mida-rsa').enabled, 'enabled when URL present');
+    assert.ok(d.mcpServers.find((s) => s.name === 'mida-rca').enabled, 'enabled when URL present');
     assert.ok(!d.mcpServers.find((s) => s.name === 'figma').enabled, 'disabled without token');
 
     // gitlab API url derived from base url

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Empty, { ICON } from '../components/Empty.jsx';
+import Markdown from '../components/Markdown.jsx';
 import { WS_BASE } from '../api.js';
 
 let uid = 0;
@@ -160,7 +161,9 @@ function Block({ b, reply }) {
         return (
             <div className="m">
                 <div className="ava">M</div>
-                <div className="body">{b.text}</div>
+                <div className="body">
+                    <Markdown text={b.text} />
+                </div>
             </div>
         );
     if (b.kind === 'thinking')

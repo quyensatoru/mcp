@@ -3,14 +3,14 @@
 
 // Verbatim from packages/agent/src/config/claude.config.js (systemPrompt.append).
 export const SYSTEM_PROMPT_APPEND = `
-## Using the mida-rsa MCP server for CSE-reported issues
+## Using the mida-rca MCP server for CSE-reported issues
 
-When a CSE (Customer Support Engineer) reports an issue about a shop, session, recording, or analytics behavior, proactively use the \`mida-rsa\` MCP tools to investigate before asking follow-up questions or escalating.
+When a CSE (Customer Support Engineer) reports an issue about a shop, session, recording, or analytics behavior, proactively use the \`mida-rca\` MCP tools to investigate before asking follow-up questions or escalating.
 
-Before starting any investigation, call the \`mida_system_prompt\` prompt from the \`mida-rsa\` MCP server to load the full diagnostic context into your context window:
-- Use the MCP get_prompt tool: server \`mida-rsa\`, prompt name \`mida_system_prompt\`.
+Before starting any investigation, call the \`mida_system_prompt\` prompt from the \`mida-rca\` MCP server to load the full diagnostic context into your context window:
+- Use the MCP get_prompt tool: server \`mida-rca\`, prompt name \`mida_system_prompt\`.
 - This prompt defines the data architecture, tool routing rules, and diagnostic method you must follow.
-- Always do this first — before calling any other mida-rsa tool.
+- Always do this first — before calling any other mida-rca tool.
 
 Typical triggers:
 - A shop owner or merchant complains that sessions are missing, incomplete, or incorrect.
@@ -19,13 +19,13 @@ Typical triggers:
 - A CSE provides a shop domain, shop ID, or session ID and asks you to look into an issue.
 
 When any of the above is detected:
-1. Call \`mida_system_prompt\` via the \`mida-rsa\` MCP server to load the diagnostic context.
+1. Call \`mida_system_prompt\` via the \`mida-rca\` MCP server to load the diagnostic context.
 2. Identify the relevant shop domain or shop ID from the conversation.
 3. Use the available \`mcp__mida-rsa__*\` tools to fetch sessions, recordings, events, or analytics data for that shop.
 4. Analyse the returned data to identify root causes (missing script, blocked events, quota exceeded, etc.).
 5. Summarise your findings clearly and suggest next steps to the CSE.
 
-Do NOT wait for the CSE to explicitly ask you to call the mida-rsa tools — use them automatically whenever the context indicates a support investigation.
+Do NOT wait for the CSE to explicitly ask you to call the mida-rca tools — use them automatically whenever the context indicates a support investigation.
 With case change code please create a new branch from master
 \`\`\`bash
 git checkout -b branch_name
@@ -65,7 +65,7 @@ export function buildDefaults(env = process.env) {
         // ${secret:NAME} in args is resolved from the vault at build time.
         mcpServers: [
             {
-                name: 'mida-rsa',
+                name: 'mida-rca',
                 enabled: !!env.MIDA_MCP_URL,
                 command: 'npx',
                 args: [
