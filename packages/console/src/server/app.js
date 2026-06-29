@@ -8,6 +8,7 @@ import { configRouter } from './routes/config.routes.js';
 import { sessionsRouter } from './routes/sessions.routes.js';
 import { filesRouter } from './routes/files.routes.js';
 import { gitRouter } from './routes/git.routes.js';
+import { chatSessionsRouter } from './routes/chat-sessions.routes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = path.resolve(__dirname, '../../web/dist');
@@ -21,6 +22,7 @@ export function createApp(configService, { token } = {}) {
     const auth = bearerAuth(token);
     app.use('/api/config', auth, configRouter(configService));
     app.use('/api/sessions', auth, sessionsRouter());
+    app.use('/api/chat/sessions', auth, chatSessionsRouter());
     app.use('/api/files', auth, filesRouter());
     app.use('/api/git', auth, gitRouter());
 

@@ -18,8 +18,8 @@ const bootstrap = async () => {
     const app = createApp(configService, { token: env.CONSOLE_TOKEN });
     const server = http.createServer(app);
 
-    // Route WS upgrades by path: /ws/terminal (integrated terminal) and /ws/chat (agent).
     const wss = new WebSocketServer({ noServer: true });
+
     server.on('upgrade', (req, socket, head) => {
         const { pathname } = new URL(req.url, 'http://localhost');
         if (pathname === '/ws/terminal') {

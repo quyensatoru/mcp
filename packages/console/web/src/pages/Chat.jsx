@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Empty, { ICON } from '../components/Empty.jsx';
 import Markdown from '../components/Markdown.jsx';
-import { WS_BASE } from '../api.js';
+import { WS_BASE, api } from '../api.js';
 
 let uid = 0;
 
@@ -11,22 +11,57 @@ const EXAMPLES = [
     'Replay render lỗi ở gadgethub',
 ];
 
-export default function Chat() {
+function fmtTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const now = new Date();
+    const diffMins = Math.floor((now - d) / 60000);
+    if (diffMins < 1) return 'vừa xong';
+    if (diffMins < 60) return `${diffMins} phút trước`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h trước`;
+    return d.toLocaleDateString('vi-VN');
+}
+
+export default function Chat({ onNavigateToWorktree }) {
     const [blocks, setBlocks] = useState([]);
     const [text, setText] = useState('');
     const [busy, setBusy] = useState(false);
     const [connected, setConnected] = useState(false);
     const [worksp, setWorksp] = useState(null);
+    const [sessions, setSessions] = useState([]);
+    const [activeSessionId, setActiveSessionId] = useState(null);
+    const [loadingSessions, setLoadingSessions] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(true);
     const wsRef = useRef(null);
     const msgsRef = useRef(null);
 
     const add = (b) => setBlocks((bs) => [...bs, { id: ++uid, ...b }]);
 
+    const refreshSessions = useCallback(() => {
+        setLoadingSessions(true);
+        api.chatSessions()
+            .then(setSessions)
+            .catch(() => {})
+            .finally(() => setLoadingSessions(false));
+    }, []);
+
+    useEffect(() => {
+        refreshSessions();
+    }, [refreshSessions]);
+
     useEffect(() => {
         const ws = new WebSocket(`${WS_BASE}/ws/chat`);
         wsRef.current = ws;
-        ws.onopen = () => setConnected(true);
-        ws.onclose = () => setConnected(false);
+        ws.onopen = () => {
+            setConnected(true);
+        };
+        ws.onerror = (e) => {
+            console.error('ERROR', e);
+        };
+        ws.onclose = (e) => {
+            setConnected(false);
+        };
         ws.onmessage = (ev) => {
             const m = JSON.parse(ev.data);
             switch (m.type) {
@@ -57,15 +92,25 @@ export default function Chat() {
                 case 'workspace':
                     setWorksp({ key: m.key, dir: m.dir });
                     break;
+                case 'session':
+                    setActiveSessionId(m.sessionId);
+                    // Refresh sidebar after a new session is created
+                    setTimeout(refreshSessions, 300);
+                    break;
+                case 'history':
+                    // Restore blocks from session history
+                    setBlocks((m.messages ?? []).map((msg) => ({ id: ++uid, ...msg })));
+                    break;
                 case 'done':
                     setBusy(false);
+                    refreshSessions();
                     break;
                 default:
                     break;
             }
         };
         return () => ws.close();
-    }, []);
+    }, [refreshSessions]);
 
     useEffect(() => {
         if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
@@ -88,62 +133,210 @@ export default function Chat() {
         );
     };
 
+    const newChat = () => {
+        setBlocks([]);
+        setWorksp(null);
+        setActiveSessionId(null);
+        wsRef.current?.send(JSON.stringify({ type: 'new_chat' }));
+    };
+
+    const resumeSession = (session) => {
+        if (busy) return;
+        if (session.id === activeSessionId) return;
+        setBlocks([]);
+        // Optimistic update từ session data để chat-ws hiển thị đúng ngay lập tức
+        setWorksp(
+            session.worktreeKey ? { key: session.worktreeKey, dir: session.cwd || '' } : null,
+        );
+        setActiveSessionId(session.id);
+        wsRef.current?.send(JSON.stringify({ type: 'resume', sessionId: session.id }));
+    };
+
     return (
-        <div className="chat">
-            {worksp && (
-                <div className="chat-ws">
-                    <span className={'dot ' + (worksp.key ? 'g' : 'a')} />
-                    git worktree:&nbsp;<b>{worksp.key || 'shared workspace'}</b>
-                </div>
-            )}
-            <div className="chat-msgs" ref={msgsRef}>
-                {!blocks.length ? (
-                    <Empty
-                        tone="light"
-                        iconTone="heat"
-                        icon={ICON.chat}
-                        title="Bắt đầu điều tra với agent"
-                        hint="Tool read-only chạy tự động; tool ghi (Edit / Bash…) sẽ hỏi duyệt ngay tại đây. Mỗi cuộc chat chạy trong git worktree riêng."
+        <div className="chat-layout">
+            {/* ── Sidebar ── */}
+            <div className={'chat-sidebar' + (sidebarOpen ? '' : ' collapsed')}>
+                <div className="chat-sb-header">
+                    {sidebarOpen && (
+                        <button className="btn pri sm w-full" onClick={newChat} disabled={busy}>
+                            + New chat
+                        </button>
+                    )}
+                    <button
+                        className="chat-sb-toggle"
+                        onClick={() => setSidebarOpen((o) => !o)}
+                        title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
                     >
-                        <div className="empty-chips">
-                            {EXAMPLES.map((x) => (
-                                <button key={x} className="empty-chip" onClick={() => setText(x)}>
-                                    {x}
-                                </button>
-                            ))}
-                        </div>
-                    </Empty>
-                ) : (
-                    <div className="thread">
-                        {blocks.map((b) => (
-                            <Block key={b.id} b={b} reply={reply} />
-                        ))}
+                        {sidebarOpen ? (
+                            <svg
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                width="14"
+                                height="14"
+                            >
+                                <rect x="1.5" y="1.5" width="13" height="13" rx="1.5" />
+                                <line x1="5.5" y1="1.5" x2="5.5" y2="14.5" />
+                                <path d="M9.5 6.5L7.5 8l2 1.5" />
+                            </svg>
+                        ) : (
+                            <svg
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                width="14"
+                                height="14"
+                            >
+                                <rect x="1.5" y="1.5" width="13" height="13" rx="1.5" />
+                                <line x1="5.5" y1="1.5" x2="5.5" y2="14.5" />
+                                <path d="M7.5 6.5L9.5 8l-2 1.5" />
+                            </svg>
+                        )}
+                    </button>
+                </div>
+                {sidebarOpen && (
+                    <div className="chat-sb-list">
+                        {loadingSessions && !sessions.length ? (
+                            <div className="chat-sb-empty">Loading…</div>
+                        ) : !sessions.length ? (
+                            <div className="chat-sb-empty">No conversations yet</div>
+                        ) : (
+                            sessions.map((s) => (
+                                <div
+                                    key={s.id}
+                                    className={
+                                        'chat-sess-item' + (s.id === activeSessionId ? ' on' : '')
+                                    }
+                                >
+                                    <button
+                                        className="chat-sess-body"
+                                        onClick={() => resumeSession(s)}
+                                        disabled={busy && s.id !== activeSessionId}
+                                    >
+                                        <div className="chat-sess-title">
+                                            {s.title || (
+                                                <span className="chat-sess-notitle">
+                                                    {s.id.slice(0, 12)}…
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="chat-sess-meta">
+                                            <span>{fmtTime(s.lastModified ?? s.createdAt)}</span>
+                                            {s.worktreeKey && (
+                                                <span
+                                                    className="chat-sess-branch"
+                                                    title={s.worktreeKey}
+                                                >
+                                                    {s.worktreeKey}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </button>
+                                    {s.worktreeKey && onNavigateToWorktree && (
+                                        <button
+                                            className="chat-sess-files-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onNavigateToWorktree(s.worktreeKey);
+                                            }}
+                                            title="Open Files & Diff"
+                                        >
+                                            <svg
+                                                viewBox="0 0 16 16"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="1.5"
+                                                width="13"
+                                                height="13"
+                                            >
+                                                <path d="M5 2v5.5a2.5 2.5 0 0 0 5 0V6M11 2v2" />
+                                                <circle cx="11" cy="13" r="1.5" />
+                                                <circle cx="5" cy="13" r="1.5" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                            ))
+                        )}
                     </div>
                 )}
             </div>
 
-            <div className="composer">
-                <div className="box">
-                    <textarea
-                        rows={1}
-                        placeholder="Nhắn cho agent… (Enter gửi, Shift+Enter xuống dòng)"
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                send();
-                            }
-                        }}
-                    />
-                    <button
-                        className="send"
-                        onClick={send}
-                        disabled={busy || !connected}
-                        aria-label="Gửi"
-                    >
-                        ↑
-                    </button>
+            {/* ── Main chat area ── */}
+            <div className="chat-main">
+                {worksp && (
+                    <div className="chat-ws">
+                        <span className={'dot ' + (worksp.key ? 'g' : 'a')} />
+                        git worktree:&nbsp;
+                        {worksp.key && onNavigateToWorktree ? (
+                            <button
+                                className="chat-ws-link"
+                                onClick={() => onNavigateToWorktree(worksp.key)}
+                                title="Open Files & Diff"
+                            >
+                                {worksp.key}
+                                <span className="chat-ws-arrow">→ Files</span>
+                            </button>
+                        ) : (
+                            <b>{worksp.key || 'shared workspace'}</b>
+                        )}
+                    </div>
+                )}
+                <div className="chat-msgs" ref={msgsRef}>
+                    {!blocks.length ? (
+                        <Empty
+                            tone="light"
+                            iconTone="heat"
+                            icon={ICON.chat}
+                            title="Bắt đầu điều tra với agent"
+                            hint="Tool read-only chạy tự động; tool ghi (Edit / Bash…) sẽ hỏi duyệt ngay tại đây. Mỗi cuộc chat chạy trong git worktree riêng."
+                        >
+                            <div className="empty-chips">
+                                {EXAMPLES.map((x) => (
+                                    <button
+                                        key={x}
+                                        className="empty-chip"
+                                        onClick={() => setText(x)}
+                                    >
+                                        {x}
+                                    </button>
+                                ))}
+                            </div>
+                        </Empty>
+                    ) : (
+                        <div className="thread">
+                            {blocks.map((b) => (
+                                <Block key={b.id} b={b} reply={reply} />
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="composer">
+                    <div className="box">
+                        <textarea
+                            rows={1}
+                            placeholder="Nhắn cho agent… (Enter gửi, Shift+Enter xuống dòng)"
+                            value={text}
+                            onChange={(e) => setText(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    send();
+                                }
+                            }}
+                        />
+                        <button
+                            className="send"
+                            onClick={send}
+                            disabled={busy || !connected}
+                            aria-label="Gửi"
+                        >
+                            ↑
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -1,4 +1,9 @@
-import { query } from '@anthropic-ai/claude-agent-sdk';
+import {
+    listSessions,
+    getSessionMessages,
+    getSessionInfo,
+    query,
+} from '@anthropic-ai/claude-agent-sdk';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -20,14 +25,12 @@ async function resolveDirs() {
         const ws = await configService.getWorkspaceConfig();
         workDir = ws?.workDir || workDir;
         sessionsDir = ws?.sessionsDir || sessionsDir;
-    } catch {
-        /* config not ready — use defaults */
+    } catch (e) {
+        logger.error(e);
     }
     return { workDir: abs(workDir), sessionsDir: abs(sessionsDir) };
 }
 
-// Same worktree machinery as the Mattermost agent, so chat sessions land in the
-// shared sessions/ dir and are browsable/editable from the Files & Diff IDE.
 let _manager = null;
 let _baseWorkDir = null;
 async function getWorkspaceManager() {
@@ -37,13 +40,41 @@ async function getWorkspaceManager() {
     return _manager;
 }
 
-// Web chat: one agent conversation per socket. Mirrors the Mattermost loop but
-// approvals round-trip over the same WS instead of a Mattermost thread.
+// Parse SDK SessionMessage[] → frontend block array
+function parseMessages(sdkMessages) {
+    const blocks = [];
+    for (const msg of sdkMessages) {
+        if (msg.type === 'user') {
+            const content = msg.message?.content;
+            const text =
+                typeof content === 'string'
+                    ? content
+                    : ((Array.isArray(content)
+                          ? content
+                                .filter((b) => b.type === 'text')
+                                .map((b) => b.text)
+                                .join('\n')
+                          : '') ?? '');
+            if (text.trim()) blocks.push({ kind: 'user', text });
+        } else if (msg.type === 'assistant') {
+            const content = msg.message?.content;
+            for (const block of Array.isArray(content) ? content : []) {
+                if (block.type === 'text' && block.text?.trim()) {
+                    blocks.push({ kind: 'text', text: block.text });
+                } else if (block.type === 'tool_use') {
+                    blocks.push({ kind: 'tool', name: block.name, input: block.input });
+                }
+            }
+        }
+    }
+    return blocks;
+}
+
 export function handleChat(ws) {
     let sessionId = '';
     let running = false;
     let chatKey = null;
-    let cwd = null; // per-chat worktree dir, created lazily on first message
+    let cwd = null;
     const pending = new Map();
     let seq = 0;
 
@@ -89,7 +120,6 @@ export function handleChat(ws) {
         if (running) return send(ws, { type: 'error', message: 'Agent đang bận' });
         running = true;
         try {
-            // Lazily init a git worktree for this chat (same as the Mattermost flow).
             if (!cwd) {
                 chatKey = `chat-${randomUUID().slice(0, 8)}`;
                 try {
@@ -156,6 +186,7 @@ export function handleChat(ws) {
         } catch {
             return;
         }
+
         if (msg.type === 'user' && msg.text) {
             send(ws, { type: 'ack' });
             run(msg.text);
@@ -170,6 +201,49 @@ export function handleChat(ws) {
                         : { behavior: 'deny', message: 'Người dùng từ chối' },
                 );
             }
+        } else if (msg.type === 'resume' && msg.sessionId) {
+            (async () => {
+                const [info, sdkMessages] = await Promise.all([
+                    getSessionInfo(msg.sessionId).catch(() => null),
+                    getSessionMessages(msg.sessionId).catch(() => []),
+                ]);
+                sessionId = msg.sessionId;
+                if (info?.cwd) {
+                    cwd = info.cwd;
+                    const basename = path.basename(info.cwd);
+                    send(ws, { type: 'workspace', key: basename, dir: cwd });
+                }
+                send(ws, { type: 'history', messages: parseMessages(sdkMessages) });
+            })().catch((e) => send(ws, { type: 'error', message: e.message }));
+        } else if (msg.type === 'new_chat') {
+            sessionId = '';
+            cwd = null;
+            chatKey = null;
+            for (const p of pending.values()) {
+                clearTimeout(p.timer);
+                p.resolve({ behavior: 'deny', message: 'Phiên mới' });
+            }
+            pending.clear();
+            send(ws, { type: 'ready' });
+        } else if (msg.type === 'list_sessions') {
+            (async () => {
+                const { workDir, sessionsDir } = await resolveDirs();
+                const all = await listSessions().catch(() => []);
+                const sessions = all
+                    .filter(
+                        (s) => !s.cwd || s.cwd.startsWith(sessionsDir) || s.cwd.startsWith(workDir),
+                    )
+                    .map((s) => ({
+                        id: s.sessionId,
+                        title: s.summary || s.firstPrompt || null,
+                        createdAt: s.createdAt ?? s.lastModified,
+                        lastModified: s.lastModified,
+                        cwd: s.cwd,
+                        gitBranch: s.gitBranch ?? null,
+                    }))
+                    .sort((a, b) => (b.lastModified ?? 0) - (a.lastModified ?? 0));
+                send(ws, { type: 'sessions', sessions });
+            })().catch((e) => send(ws, { type: 'error', message: e.message }));
         }
     });
 

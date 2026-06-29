@@ -19,7 +19,6 @@ export async function currentBranch(cwd) {
     }
 }
 
-// Parse `git status --porcelain` into [{ x, y, path }] entries.
 export async function status(cwd) {
     const out = await git(['status', '--porcelain'], cwd);
     return out

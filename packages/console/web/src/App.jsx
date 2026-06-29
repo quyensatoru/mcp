@@ -56,6 +56,7 @@ export default function App() {
     const [error, setError] = useState(null);
     const [view, setView] = useState('overview');
     const [health, setHealth] = useState(null);
+    const [filesSession, setFilesSession] = useState(null);
 
     const reload = useCallback(async () => {
         try {
@@ -73,6 +74,11 @@ export default function App() {
             .then(setHealth)
             .catch(() => setHealth({ ok: false }));
     }, [reload]);
+
+    const navigateToWorktree = (key) => {
+        setFilesSession(key);
+        setView('files');
+    };
 
     const pageProps = { data, api, reload };
     const isApp = view === 'files' || view === 'chat';
@@ -182,7 +188,14 @@ export default function App() {
                             <span className="spin" />
                         </div>
                     )}
-                    {data && Page && <Page {...pageProps} />}
+                    {data && Page && (
+                        <Page
+                            {...pageProps}
+                            onNavigateToWorktree={navigateToWorktree}
+                            initialSession={filesSession}
+                            onSessionOpened={() => setFilesSession(null)}
+                        />
+                    )}
                 </div>
             </div>
         </div>

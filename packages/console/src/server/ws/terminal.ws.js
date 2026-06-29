@@ -1,17 +1,16 @@
 import { spawn } from 'node:child_process';
 import { resolveRepo } from '../paths.js';
+import { logger } from '@mida/logger';
 
 const send = (ws, msg) => ws.readyState === 1 && ws.send(JSON.stringify(msg));
 
-// Line-oriented terminal: each {cmd} message spawns a shell in the worktree cwd
-// and streams stdout/stderr back. Not a full PTY (no interactive TUIs) but enough
-// for git / npm / ls. cwd is pinned to the session worktree (traversal-guarded).
 export async function handleTerminal(ws, req) {
     const url = new URL(req.url, 'http://localhost');
     let cwd;
     try {
         cwd = await resolveRepo(url.searchParams.get('session'), url.searchParams.get('repo'));
     } catch (e) {
+        logger.error(e);
         send(ws, { type: 'error', data: e.message });
         return ws.close();
     }
@@ -23,7 +22,8 @@ export async function handleTerminal(ws, req) {
         let msg;
         try {
             msg = JSON.parse(raw.toString());
-        } catch {
+        } catch (e) {
+            logger.error(e);
             return;
         }
         if (msg.type === 'cmd' && msg.cmd) {

@@ -4,13 +4,12 @@ import path from 'node:path';
 import { sessionsRoot } from '../paths.js';
 import { currentBranch, status } from '../git.js';
 
-// Lists session worktrees on disk and the repos checked out in each.
 export function sessionsRouter() {
-    const r = Router();
+    const route = Router();
     const ah = (fn) => (req, res) =>
         fn(req, res).catch((e) => res.status(500).json({ error: e.message }));
 
-    r.get(
+    route.get(
         '/',
         ah(async (_req, res) => {
             const root = await sessionsRoot();
@@ -47,5 +46,5 @@ export function sessionsRouter() {
         }),
     );
 
-    return r;
+    return route;
 }

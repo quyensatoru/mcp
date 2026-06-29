@@ -55,7 +55,7 @@ function TreeNode({ node, depth, childrenMap, loadDir, openFile, active }) {
     );
 }
 
-export default function Files({ data, api }) {
+export default function Files({ data, api, initialSession, onSessionOpened }) {
     const [sessions, setSessions] = useState(null);
     const [session, setSession] = useState(null); // session object { session, repos: [...] }
     const [repo, setRepo] = useState(null); // active repo name within the session
@@ -80,6 +80,16 @@ export default function Files({ data, api }) {
             .then(setSessions)
             .catch(() => setSessions([]));
     }, [api]);
+
+    useEffect(() => {
+        if (!initialSession || !sessions?.length || session) return;
+        const match = sessions.find((s) => s.session === initialSession);
+        if (match) {
+            setSession(match);
+            selectRepo(match.session, match.repos[0]?.repo || null);
+            onSessionOpened?.();
+        }
+    }, [sessions, initialSession]);
 
     const refreshGit = useCallback(() => {
         if (!sname || !repo) return;
@@ -158,7 +168,6 @@ export default function Files({ data, api }) {
         }
     };
 
-    // terminal WS — reconnects whenever the active session/repo changes
     useEffect(() => {
         if (!sname || !repo) return;
         const ws = new WebSocket(

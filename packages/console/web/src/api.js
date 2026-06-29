@@ -1,13 +1,10 @@
-// Optional bearer token (set VITE_CONSOLE_TOKEN at build/dev time if the API is guarded).
 const TOKEN = import.meta.env.VITE_CONSOLE_TOKEN || '';
+const API_URL = import.meta.env.VITE_API_URL;
 
-// WebSocket base. In dev (Vite :5173) connect straight to the console server so WS
-// never goes through Vite's proxy (which logs noisy ECONNABORTED on socket teardown).
-// In prod the dashboard is served by the console itself, so same-origin is correct.
-const WS_PROTO = location.protocol === 'https:' ? 'wss' : 'ws';
-export const WS_BASE = import.meta.env.DEV
+const isLocal = location.protocol === 'http:';
+export const WS_BASE = isLocal
     ? `ws://${location.hostname}:${import.meta.env.VITE_CONSOLE_PORT || 4000}`
-    : `${WS_PROTO}://${location.host}`;
+    : `${API_URL.replace(/\/$/, '').replace(/^https:/, 'wss:')}`;
 
 async function req(method, path, body) {
     const res = await fetch('/api' + path, {
@@ -42,7 +39,10 @@ export const api = {
     delSecret: (k) => req('DELETE', `/config/secrets/${encodeURIComponent(k)}`),
     reload: () => req('POST', '/config/reload'),
 
-    // ---- files & git (P4) ----
+    chatSessions: () => req('GET', '/chat/sessions'),
+    chatMessages: (sessionId) =>
+        req('GET', `/chat/sessions/${encodeURIComponent(sessionId)}/messages`),
+
     sessions: () => req('GET', '/sessions'),
     tree: (session, repo, dir = '') =>
         req(

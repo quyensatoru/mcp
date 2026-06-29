@@ -1,5 +1,3 @@
-// Bearer-token guard for /api/*. When no token is configured the API is open
-// (dev convenience) — index.js logs a warning in that case.
 export function bearerAuth(token) {
     return (req, res, next) => {
         if (!token) return next();
