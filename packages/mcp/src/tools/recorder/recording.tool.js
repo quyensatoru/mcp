@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { resolveProxy } from '../services/proxy.service.js';
-import { ShopService } from '../services/shop.service.js';
-import { RecordingService } from '../services/recording.service.js';
-import { cacheKey, withCache } from '../helpers/redis.helper.js';
-import { textContent, errorContent } from '../helpers/format.helper.js';
-import { wrap } from '../helpers/tool.helper.js';
+import { resolveProxy } from '../../services/proxy.service.js';
+import { ShopService } from '../../services/api/shop.service.js';
+import { RecordingService } from '../../services/recorder/recording.service.js';
+import { cacheKey, withCache } from '../../helpers/redis.helper.js';
+import { textContent, errorContent } from '../../helpers/format.helper.js';
+import { wrap } from '../../helpers/tool.helper.js';
 
 const TTL = 60;
 
@@ -30,9 +30,7 @@ function formatIntegrity(data, domain, proxy) {
         lines.push('', `Session ${session.sessionId}: ${session.status}`);
         if (session.diffs?.length)
             session.diffs.forEach((d) =>
-                lines.push(
-                    `  - ${d.field}: api=${JSON.stringify(d.api)} rec=${JSON.stringify(d.replica)}`,
-                ),
+                lines.push(`  - ${d.field}: api=${JSON.stringify(d.api)} rec=${JSON.stringify(d.replica)}`),
             );
     }
     return lines.join('\n');
@@ -79,10 +77,7 @@ export function registerRecordingTools(server) {
                 'Compare api (source) vs recorder (replica): session_count drift + replica lag. Pass sessionId to compare one session in detail (MISSING/STALE/IN_SYNC). Use when recorder/replica data looks out of sync with api.',
             inputSchema: z.object({
                 domain: z.string().describe('Shopify domain'),
-                sessionId: z
-                    .string()
-                    .optional()
-                    .describe('Session ObjectId for a detailed per-session compare'),
+                sessionId: z.string().optional().describe('Session ObjectId for a detailed per-session compare'),
             }),
         },
         wrap('recording_integrity', async ({ domain, sessionId }) => {
@@ -111,7 +106,7 @@ export function registerRecordingTools(server) {
         {
             title: 'Recording Missing',
             description:
-                'Reads sessionmissings + analytic_missing (recorder): sessions dropped because the shop exceeded its plan session_limit (a quota feature, NOT a consumer/queue error). Use to explain "sessions not recorded" when quota is the suspected cause.',
+                'Reads sessionmissings + analytic_missing (recorder): sessions dropped because the shop exceeded its plan session_limit. Use to explain "sessions not recorded" when quota is the suspected cause.',
             inputSchema: z.object({
                 domain: z.string().describe('Shopify domain'),
                 dateFrom: z.string().optional().describe('Start date YYYY-MM-DD'),

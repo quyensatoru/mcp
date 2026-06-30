@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { resolveProxy } from '../services/proxy.service.js';
-import { ReplayService } from '../services/replay.service.js';
-import { rrwebService } from '../services/rrweb.service.js';
-import { screenshotService } from '../services/screenshot.service.js';
-import { textContent, errorContent } from '../helpers/format.helper.js';
-import { imageContent, diffImages } from '../helpers/image.helper.js';
-import { wrap } from '../helpers/tool.helper.js';
+import { resolveProxy } from '../../services/proxy.service.js';
+import { ReplayService } from '../../services/api/replay.service.js';
+import { rrwebService } from '../../services/rrweb.service.js';
+import { screenshotService } from '../../services/screenshot.service.js';
+import { textContent, errorContent } from '../../helpers/format.helper.js';
+import { imageContent, diffImages } from '../../helpers/image.helper.js';
+import { wrap } from '../../helpers/tool.helper.js';
 
 const RRWEB_TYPE = {
     0: 'DomContentLoaded',

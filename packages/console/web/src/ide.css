@@ -623,12 +623,16 @@
     max-width: 78%;
     font-size: 13.5px;
     white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 .m .body {
     flex: 1;
     min-width: 0;
     font-size: 13.5px;
     white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 /* ===== Markdown (agent text) ===== */
 .md {
@@ -750,6 +754,9 @@
     font-family: var(--mono);
     font-size: 12px;
     margin: 6px 0;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 .ctool b {
     color: var(--accent);
@@ -805,7 +812,8 @@
     font-family: var(--sans);
     font-size: 14px;
     line-height: 1.5;
-    max-height: 160px;
+    max-height: 112px;
+    overflow-y: auto;
 }
 .composer .send {
     width: 34px;

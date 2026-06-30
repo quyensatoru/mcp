@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { resolveProxy } from '../services/proxy.service.js';
-import { ShopService } from '../services/shop.service.js';
-import { cacheKey, withCache } from '../helpers/redis.helper.js';
-import { textContent, errorContent, pct } from '../helpers/format.helper.js';
-import { wrap } from '../helpers/tool.helper.js';
+import { resolveProxy } from '../../services/proxy.service.js';
+import { ShopService } from '../../services/api/shop.service.js';
+import { cacheKey, withCache } from '../../helpers/redis.helper.js';
+import { textContent, errorContent, pct } from '../../helpers/format.helper.js';
+import { wrap } from '../../helpers/tool.helper.js';
 
 const TTL = 120;
 
@@ -45,10 +45,7 @@ export function registerShopTool(server) {
                 return { proxy, shop };
             });
             if (!data.shop)
-                return errorContent(
-                    `Shop not found in api: ${domain}`,
-                    'Check the domain spelling.',
-                );
+                return errorContent(`Shop not found in api: ${domain}`, 'Check the domain spelling.');
             return textContent(formatShopOverview(data.shop, data.proxy));
         }),
     );

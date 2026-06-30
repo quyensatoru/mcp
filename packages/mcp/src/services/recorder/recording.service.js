@@ -1,11 +1,16 @@
-import { SessionModels } from '../models/api/session.model.js';
-import { ShopModels } from '../models/api/shop.model.js';
-import { RecorderSessionModels } from '../models/recorder/session.model.js';
-import { RecorderShopModels } from '../models/recorder/shop.model.js';
-import { SessionMissingModels } from '../models/recorder/session-missing.model.js';
-import { AnalyticMissingModels } from '../models/recorder/analytic-missing.model.js';
-import { dateRangeFilter } from '../helpers/validate.helper.js';
-import { toObjectId } from '../helpers/objectid.helper.js';
+import { SessionModels } from '../../models/api/session.model.js';
+import { ShopModels } from '../../models/api/shop.model.js';
+import { ModuleModels } from '../../models/api/module.model.js';
+import { SettingModels } from '../../models/api/setting.model.js';
+import { ConfigurationModels } from '../../models/api/configuration.model.js';
+import { RecorderSessionModels } from '../../models/recorder/session.model.js';
+import { RecorderShopModels } from '../../models/recorder/shop.model.js';
+import { RecorderModuleModels } from '../../models/recorder/module.model.js';
+import { RecorderSettingModels } from '../../models/recorder/setting.model.js';
+import { SessionMissingModels } from '../../models/recorder/session-missing.model.js';
+import { AnalyticMissingModels } from '../../models/recorder/analytic-missing.model.js';
+import { dateRangeFilter } from '../../helpers/validate.helper.js';
+import { toObjectId } from '../../helpers/objectid.helper.js';
 
 const COMPARE_FIELDS = ['key', 'status', 'duration', 'last_active', 'page_per_session'];
 
@@ -88,4 +93,36 @@ export const RecordingService = {
         ]);
         return { sessionMissing, analyticMissing };
     },
+
+    // Module: sr (session recording) / sv (survey) — from API
+    moduleApi: (proxy, shopId) =>
+        ModuleModels[proxy]
+            .find({ shop: shopId }, { key: 1, status: 1, metafield_id: 1, updatedAt: 1 })
+            .lean()
+            .exec(),
+
+    // Module from Recorder replica
+    moduleRecorder: (proxy, shopId) =>
+        RecorderModuleModels[proxy]
+            .find({ shop: shopId }, { key: 1, status: 1, updatedAt: 1 })
+            .lean()
+            .exec(),
+
+    // Setting from API
+    settingApi: (proxy, shopId) =>
+        SettingModels[proxy].findOne({ shop: shopId }, { shop: 0 }).lean().exec(),
+
+    // Setting from Recorder replica
+    settingRecorder: (proxy, shopId) =>
+        RecorderSettingModels[proxy].findOne({ shop: shopId }, { shop: 0 }).lean().exec(),
+
+    // Configuration (plan limits, heatmap/survey limits, funnel definitions)
+    configurationApi: (proxy, shopId) =>
+        ConfigurationModels[proxy]
+            .findOne(
+                { shop: shopId },
+                { heatmaps: 1, survey: 1, share_recording: 1, funnel_analytics: 1, restrict_filter: 1, updatedAt: 1 },
+            )
+            .lean()
+            .exec(),
 };

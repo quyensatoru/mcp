@@ -1,6 +1,5 @@
-import { AnalyticModels } from '../models/api/analytic.model.js';
+import { AnalyticModels } from '../../models/api/analytic.model.js';
 
-// Analytic.date là chuỗi 'YYYY-MM-DD' nên so sánh chuỗi $gte/$lte là đủ.
 export const AnalyticService = {
     byDateRange: (proxy, shopId, dateFrom, dateTo) =>
         AnalyticModels[proxy]

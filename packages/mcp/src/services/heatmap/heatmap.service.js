@@ -1,5 +1,5 @@
-import { ClickModels } from '../models/heatmap/click.model.js';
-import { ScrollModels } from '../models/heatmap/scroll.model.js';
+import { ClickModels } from '../../models/heatmap/click.model.js';
+import { ScrollModels } from '../../models/heatmap/scroll.model.js';
 
 // Field shape giả định theo skill (x,y,counts,selector,device,type) — model strict:false nên đọc đủ field thật.
 export const HeatmapService = {

@@ -35,6 +35,12 @@ export default function Chat({ onNavigateToWorktree }) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const wsRef = useRef(null);
     const msgsRef = useRef(null);
+    const taRef = useRef(null);
+
+    const resizeTa = (el) => {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 112) + 'px';
+    };
 
     const add = (b) => setBlocks((bs) => [...bs, { id: ++uid, ...b }]);
 
@@ -121,6 +127,9 @@ export default function Chat({ onNavigateToWorktree }) {
         add({ kind: 'user', text: text.trim() });
         wsRef.current.send(JSON.stringify({ type: 'user', text: text.trim() }));
         setText('');
+        if (taRef.current) {
+            taRef.current.style.height = 'auto';
+        }
         setBusy(true);
     };
 
@@ -317,10 +326,14 @@ export default function Chat({ onNavigateToWorktree }) {
                 <div className="composer">
                     <div className="box">
                         <textarea
+                            ref={taRef}
                             rows={1}
                             placeholder="Nhắn cho agent… (Enter gửi, Shift+Enter xuống dòng)"
                             value={text}
-                            onChange={(e) => setText(e.target.value)}
+                            onChange={(e) => {
+                                setText(e.target.value);
+                                resizeTa(e.target);
+                            }}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
