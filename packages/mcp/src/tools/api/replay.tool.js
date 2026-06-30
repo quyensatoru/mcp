@@ -17,6 +17,9 @@ const RRWEB_TYPE = {
     6: 'Plugin',
 };
 
+const RRWEB_TYPE_Z = Object.keys(RRWEB_TYPE).map(Number);
+
+
 function toRrwebEvents(docs) {
     return docs.map((e) => ({ type: e.type, timestamp: e.timestamp, data: e.data }));
 }
@@ -25,7 +28,7 @@ function formatEventsSummary(events, pageViewId) {
     if (!events.length) return `No rrweb events for pageView ${pageViewId}.`;
     const byType = {};
     for (const e of events) {
-        const name = RRWEB_TYPE[e.type] ?? `type${e.type}`;
+        const name = RRWEB_TYPE[e.type] ?? `type_event_rrweb_${e.type}`;
         byType[name] = (byType[name] ?? 0) + 1;
     }
     const first = events[0].timestamp;
@@ -33,7 +36,7 @@ function formatEventsSummary(events, pageViewId) {
     return [
         `rrweb events for pageView ${pageViewId}: ${events.length} events`,
         `  duration: ${last - first}ms`,
-        `  has full snapshot: ${byType.FullSnapshot ? 'yes' : 'no — replay may break'}`,
+        `  has full snapshot: ${byType.FullSnapshot ? 'yes' : 'no — replay or heatmap may break'}`,
         `  by type: ${Object.entries(byType)
             .map(([k, v]) => `${k}=${v}`)
             .join(', ')}`,
@@ -58,13 +61,7 @@ export function registerReplayTools(server) {
             inputSchema: z.object({
                 domain: z.string().describe('Shopify domain'),
                 pageViewId: z.string().describe('PageView ObjectId'),
-                limit: z
-                    .number()
-                    .int()
-                    .min(1)
-                    .max(5000)
-                    .default(2000)
-                    .describe('Max events to scan'),
+                limit: z.number().int().min(1).max(5000).default(100).describe('Max events to scan'),
             }),
         },
         wrap('replay_events', async ({ domain, pageViewId, limit }) => {
@@ -84,13 +81,7 @@ export function registerReplayTools(server) {
                 domain: z.string().describe('Shopify domain'),
                 pageViewId: z.string().describe('PageView ObjectId'),
                 atMs: z.number().optional().describe('Offset in ms from replay start (omit = end)'),
-                eventLimit: z
-                    .number()
-                    .int()
-                    .min(100)
-                    .max(5000)
-                    .default(1000)
-                    .describe('Max events to load'),
+                eventLimit: z.number().int().min(100).max(5000).default(1000).describe('Max events to load'),
             }),
         },
         wrap('replay_render', async ({ domain, pageViewId, atMs, eventLimit }) => {
@@ -103,17 +94,8 @@ export function registerReplayTools(server) {
             );
             return {
                 content: [
-                    imageContent(buffer, `rrweb replay @ ${seekMs}ms`),
-                    {
-                        type: 'text',
-                        text: formatRenderMeta({
-                            pageViewId,
-                            eventCount: docs.length,
-                            seekMs,
-                            totalDuration,
-                            errors,
-                        }),
-                    },
+                    imageContent(buffer, `screenshot rrweb replay @ ${seekMs}ms`),
+                    { type: 'text', text: formatRenderMeta({ pageViewId, eventCount: docs.length, seekMs, totalDuration, errors }) },
                 ],
             };
         }),
@@ -129,10 +111,7 @@ export function registerReplayTools(server) {
                 url: z.string().url().describe('URL to capture'),
                 width: z.number().int().default(1280).describe('Viewport width'),
                 height: z.number().int().default(800).describe('Viewport height'),
-                waitFor: z
-                    .enum(['load', 'networkidle'])
-                    .default('networkidle')
-                    .describe('Wait condition before capture'),
+                waitFor: z.enum(['load', 'networkidle']).default('networkidle').describe('Wait condition before capture'),
             }),
         },
         wrap('screenshot_url', async ({ url, width, height, waitFor }) => {
@@ -143,10 +122,7 @@ export function registerReplayTools(server) {
             return {
                 content: [
                     imageContent(buffer, `Screenshot: ${url}`),
-                    {
-                        type: 'text',
-                        text: `url: ${url}\ntitle: ${title}\nconsole errors: ${consoleErrors.length ? consoleErrors.join('; ') : 'none'}`,
-                    },
+                    { type: 'text', text: `url: ${url}\ntitle: ${title}\nconsole errors: ${consoleErrors.length ? consoleErrors.join('; ') : 'none'}` },
                 ],
             };
         }),
@@ -163,13 +139,7 @@ export function registerReplayTools(server) {
                 pageViewId: z.string().describe('PageView ObjectId'),
                 compareUrl: z.string().url().describe('Live URL to compare against'),
                 atMs: z.number().optional().describe('Offset in ms from replay start (omit = end)'),
-                eventLimit: z
-                    .number()
-                    .int()
-                    .min(100)
-                    .max(5000)
-                    .default(1000)
-                    .describe('Max events to load'),
+                eventLimit: z.number().int().min(100).max(5000).default(1000).describe('Max events to load'),
             }),
         },
         wrap('replay_diagnose', async ({ domain, pageViewId, compareUrl, atMs, eventLimit }) => {
@@ -181,10 +151,7 @@ export function registerReplayTools(server) {
                 rrwebService.render(toRrwebEvents(docs), { atMs }),
                 screenshotService.capture(compareUrl, { viewport: { width: 1280, height: 800 } }),
             ]);
-            const { diffBuffer, diffPercent, diffPixels, totalPixels } = diffImages(
-                replay.buffer,
-                live.buffer,
-            );
+            const { diffBuffer, diffPercent, diffPixels, totalPixels } = diffImages(replay.buffer, live.buffer);
             const verdict =
                 diffPercent > 30
                     ? '🔴 large difference (>30%) — likely broken CSS/JS or layout'

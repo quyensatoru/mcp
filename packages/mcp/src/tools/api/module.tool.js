@@ -46,9 +46,9 @@ function formatConfiguration(config, domain) {
 
 export function registerModuleApiTools(server) {
     server.registerTool(
-        'recording_module_api',
+        'config_module_api',
         {
-            title: 'Recording Module (API)',
+            title: 'Config Module (API)',
             description:
                 'Get module records (sr=Session Recording, sv=Survey) from the API database. Shows key, status, and metafield_id. Use to check the source-of-truth module state.',
             inputSchema: z.object({
@@ -69,9 +69,9 @@ export function registerModuleApiTools(server) {
     );
 
     server.registerTool(
-        'recording_config',
+        'config_api',
         {
-            title: 'Recording Configuration',
+            title: 'Configuration (API)',
             description:
                 'Get the shop\'s Configuration from the API: heatmap page limit, survey limit, share_recording type, funnel_analytics definitions, and restrict_filter flags. Use to understand what plan-level features and limits apply to this shop.',
             inputSchema: z.object({

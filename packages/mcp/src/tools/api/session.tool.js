@@ -120,7 +120,7 @@ export function registerSessionTools(server) {
         {
             title: 'Session List',
             description:
-                'List recorded sessions filtered by device, location, frustration, customer email, or date range. Each row includes a replay link. Use to find specific sessions to inspect — e.g. frustrated users or a given customer\'s visits.',
+                'List recorded sessions filtered by device, location, or date range. Use to find specific sessions to inspect — e.g. frustrated users or a given customer\'s visits.',
             inputSchema: z.object({
                 domain: z.string().describe('Shopify domain'),
                 device: z
@@ -131,8 +131,6 @@ export function registerSessionTools(server) {
                     .string()
                     .optional()
                     .describe('Filter by location (country/region string)'),
-                frustrated: z.boolean().optional().describe('Only frustrated sessions when true'),
-                customer_email: z.string().optional().describe('Filter by exact customer email'),
                 dateFrom: z.string().optional().describe('Start date YYYY-MM-DD (by createdAt)'),
                 dateTo: z.string().optional().describe('End date YYYY-MM-DD (by createdAt)'),
                 limit: z
@@ -151,10 +149,10 @@ export function registerSessionTools(server) {
             if (!shopId) return errorContent(`Shop not found: ${domain}`);
 
             const filter = { shop: shopId };
+
             if (f.device) filter.device = f.device;
             if (f.location) filter.location = f.location;
-            if (typeof f.frustrated === 'boolean') filter.frustrated = f.frustrated;
-            if (f.customer_email) filter.customer_email = f.customer_email;
+
             const created = dateRangeFilter(f.dateFrom, f.dateTo);
             if (created) filter.createdAt = created;
 
@@ -172,25 +170,24 @@ export function registerSessionTools(server) {
         {
             title: 'Session Detail',
             description:
-                'Full detail of one session (by id or key): visitor info, pageviews, counts of rrweb events & behaviors, plus pipeline flags. Use to diagnose "recording missing/broken" — the flags show where the Session → PageView → Event chain breaks.',
+                'Full detail of one session by id: visitor info, pageviews, counts of rrweb events & behaviors, plus pipeline flags. Use to diagnose "recording missing/broken" — the flags show where the Session → PageView → Event chain breaks.',
             inputSchema: z.object({
                 domain: z.string().describe('Shopify domain'),
                 sessionId: z.string().optional().describe('Session ObjectId'),
-                sessionKey: z.string().optional().describe('session.key (client UUID)'),
             }),
         },
-        wrap('session_detail', async ({ domain, sessionId, sessionKey }) => {
-            if (!sessionId && !sessionKey) return errorContent('Provide sessionId or sessionKey.');
+        wrap('session_detail', async ({ domain, sessionId }) => {
+            if (!sessionId) return errorContent('Provide sessionId.');
             const proxy = await resolveProxy(domain);
             const shopId = await ShopService.idByDomain(proxy, domain);
             if (!shopId) return errorContent('Shop not found');
 
-            const filter = sessionId
-                ? { shop: toObjectId(shopId), _id: toObjectId(sessionId) }
-                : { shop: toObjectId(shopId), key: sessionKey };
+            const filter = { shop: toObjectId(shopId), _id: toObjectId(sessionId) }
 
             const session = await SessionService.findOne(proxy, filter);
-            if (!session) return errorContent(`Session not found: ${sessionId ?? sessionKey}`);
+            if (!session) {
+                return errorContent(`Session not found: ${sessionId}`);
+            }
 
             const pageviews = await SessionService.pageviews(proxy, session._id);
             const pvIds = pageviews.map((p) => p._id);
@@ -201,11 +198,19 @@ export function registerSessionTools(server) {
             ]);
 
             const flags = [];
-            if (!pageviews.length)
-                flags.push('Session exists but has 0 PageViews — ingest/queue may have failed');
-            else if (events === 0)
-                flags.push('PageViews exist but 0 rrweb Events — recorder sent no data or consumer dropped it');
-            if (session.status === false) flags.push('Session not closed (status=false)');
+            if (!pageviews.length) {
+                flags.push(`Session exists but has not PageViews`);
+            } else if (events === 0) {
+                flags.push('PageViews exist but 0 rrweb Events');
+            }
+
+            if(behaviors === 0) {
+                flags.push('Behavior not exists');
+            }
+                
+            if (session.status === false) {
+                flags.push('Session not closed (status=false)');
+            }
 
             return textContent(
                 formatSessionDetail(

@@ -106,7 +106,7 @@ export function registerRecordingTools(server) {
         {
             title: 'Recording Missing',
             description:
-                'Reads sessionmissings + analytic_missing (recorder): sessions dropped because the shop exceeded its plan session_limit. Use to explain "sessions not recorded" when quota is the suspected cause.',
+                'Reads session missings  (recorder): sessions dropped because the shop exceeded its plan session_limit. Use to explain "sessions not recorded" when quota is the suspected cause.',
             inputSchema: z.object({
                 domain: z.string().describe('Shopify domain'),
                 dateFrom: z.string().optional().describe('Start date YYYY-MM-DD'),
