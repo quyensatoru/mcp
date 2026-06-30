@@ -9,9 +9,6 @@ import { encrypt, decrypt } from './crypto.js';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 
-// Locate the Claude Code native binary for the *current* platform/arch instead of
-// hardcoding one OS — the SDK ships it as @anthropic-ai/claude-agent-sdk-<plat>-<arch>
-// (claude.exe on Windows, claude elsewhere). Version-agnostic so it survives bumps.
 function resolveClaudeBin() {
     if (process.env.CLAUDE_BIN) return process.env.CLAUDE_BIN;
 

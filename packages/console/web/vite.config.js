@@ -5,7 +5,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-// .env lives one level up at packages/console/.env
 const envDir = path.resolve(root, '..');
 
 export default defineConfig(({ mode }) => {
