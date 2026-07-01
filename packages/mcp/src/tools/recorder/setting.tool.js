@@ -14,7 +14,7 @@ export function registerSettingRecorderTools(server) {
         {
             title: 'Recording Setting (Compare)',
             description:
-                'Compare recording settings between API and Recorder: excluded_ips, excluded_countries, replay_speed, require_consent, etc. Highlights drift. Use when recorder behaviour does not match the shop\'s configured settings.',
+                "Compare recording settings between API and Recorder: excluded_ips, excluded_countries, replay_speed, require_consent, etc. Highlights drift. Use when recorder behaviour does not match the shop's configured settings.",
             inputSchema: z.object({
                 domain: z.string().describe('Shopify domain'),
             }),

@@ -1,4 +1,4 @@
-import { ConfigurationModels } from "../../models/api/configuration.model.js";
+import { ConfigurationModels } from '../../models/api/configuration.model.js';
 
 export const ConfigurationService = {
     findOne: (proxy, shopId) =>
@@ -9,4 +9,4 @@ export const ConfigurationService = {
             )
             .lean()
             .exec(),
-}
+};

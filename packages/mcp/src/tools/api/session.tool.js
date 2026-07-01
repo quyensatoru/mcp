@@ -3,7 +3,14 @@ import { resolveProxy } from '../../services/proxy.service.js';
 import { ShopService } from '../../services/api/shop.service.js';
 import { SessionService } from '../../services/api/session.service.js';
 import { cacheKey, withCache } from '../../helpers/redis.helper.js';
-import { textContent, errorContent, abbreviate, maskEmail, formatSessionList, formatSessionDetail } from '../../helpers/format.helper.js';
+import {
+    textContent,
+    errorContent,
+    abbreviate,
+    maskEmail,
+    formatSessionList,
+    formatSessionDetail,
+} from '../../helpers/format.helper.js';
 import { dateRangeFilter } from '../../helpers/validate.helper.js';
 import { toObjectId } from '../../helpers/objectid.helper.js';
 import { wrap } from '../../helpers/tool.helper.js';
@@ -68,7 +75,7 @@ export function registerSessionTools(server) {
         {
             title: 'Session List',
             description:
-                'List recorded sessions filtered by device, location, or date range. Use to find specific sessions to inspect — e.g. frustrated users or a given customer\'s visits.',
+                "List recorded sessions filtered by device, location, or date range. Use to find specific sessions to inspect — e.g. frustrated users or a given customer's visits.",
             inputSchema: z.object({
                 domain: z.string().describe('Shopify domain'),
                 device: z
@@ -132,10 +139,10 @@ export function registerSessionTools(server) {
                 return errorContent('Shop not found');
             }
 
-            const filter = { 
-                shop: toObjectId(shopId), 
-                _id: toObjectId(sessionId) 
-            }
+            const filter = {
+                shop: toObjectId(shopId),
+                _id: toObjectId(sessionId),
+            };
 
             const session = await SessionService.findOne(proxy, filter);
             if (!session) {
@@ -158,29 +165,29 @@ export function registerSessionTools(server) {
                 flags.push('PageViews exist but 0 rrweb Events');
             }
 
-            if(behaviors === 0) {
+            if (behaviors === 0) {
                 flags.push('Behavior not exists');
             }
-                
+
             if (session.status === false) {
                 flags.push('Session not closed (status=false)');
             }
 
             return textContent(
                 formatSessionDetail(
-                    { 
-                        session, 
-                        visitor, 
-                        pageviews, 
-                        counts: { 
-                            pageviews: pageviews.length, 
-                            events, 
-                            behaviors 
-                        }, 
-                        flags 
+                    {
+                        session,
+                        visitor,
+                        pageviews,
+                        counts: {
+                            pageviews: pageviews.length,
+                            events,
+                            behaviors,
+                        },
+                        flags,
                     },
                     domain,
-                    'API'
+                    'API',
                 ),
             );
         }),

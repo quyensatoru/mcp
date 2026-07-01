@@ -2,7 +2,14 @@ import { z } from 'zod';
 import { resolveProxy } from '../../services/proxy.service.js';
 import { ShopService } from '../../services/api/shop.service.js';
 import { cacheKey, withCache } from '../../helpers/redis.helper.js';
-import { textContent, errorContent, abbreviate, maskEmail, formatSessionList, formatSessionDetail } from '../../helpers/format.helper.js';
+import {
+    textContent,
+    errorContent,
+    abbreviate,
+    maskEmail,
+    formatSessionList,
+    formatSessionDetail,
+} from '../../helpers/format.helper.js';
 import { dateRangeFilter } from '../../helpers/validate.helper.js';
 import { toObjectId } from '../../helpers/objectid.helper.js';
 import { wrap } from '../../helpers/tool.helper.js';
@@ -30,7 +37,7 @@ export function registerSessionRecorderTools(server) {
         {
             title: 'Session List',
             description:
-                'List recorded sessions filtered by device, location, or date range. Use to find specific sessions to inspect — e.g. frustrated users or a given customer\'s visits.',
+                "List recorded sessions filtered by device, location, or date range. Use to find specific sessions to inspect — e.g. frustrated users or a given customer's visits.",
             inputSchema: z.object({
                 domain: z.string().describe('Shopify domain'),
                 device: z
@@ -97,10 +104,10 @@ export function registerSessionRecorderTools(server) {
                 return errorContent('Shop not found');
             }
 
-            const filter = { 
-                shop: toObjectId(shopId), 
-                _id: toObjectId(sessionId) 
-            }
+            const filter = {
+                shop: toObjectId(shopId),
+                _id: toObjectId(sessionId),
+            };
 
             const session = await RecorderSessionService.findOne(proxy, filter);
             if (!session) {
@@ -109,11 +116,11 @@ export function registerSessionRecorderTools(server) {
 
             return textContent(
                 formatSessionDetail(
-                    { 
+                    {
                         session,
                     },
                     domain,
-                    'Recorder'
+                    'Recorder',
                 ),
             );
         }),
@@ -129,7 +136,13 @@ export function registerSessionRecorderTools(server) {
                 domain: z.string().describe('Shopify domain'),
                 dateFrom: z.string().optional().describe('Start date YYYY-MM-DD'),
                 dateTo: z.string().optional().describe('End date YYYY-MM-DD'),
-                limit: z.number().int().min(1).max(200).default(50).describe('Max records to return'),
+                limit: z
+                    .number()
+                    .int()
+                    .min(1)
+                    .max(200)
+                    .default(50)
+                    .describe('Max records to return'),
             }),
         },
         wrap('recorder_get_session_missing', async ({ domain, dateFrom, dateTo, limit }) => {
@@ -141,7 +154,13 @@ export function registerSessionRecorderTools(server) {
             }
 
             const missing = await withCache(
-                cacheKey('recorder_get_session_missing', { proxy, shopId, dateFrom, dateTo, limit }),
+                cacheKey('recorder_get_session_missing', {
+                    proxy,
+                    shopId,
+                    dateFrom,
+                    dateTo,
+                    limit,
+                }),
                 TTL,
                 () => RecorderSessionService.missing(proxy, shopId, dateFrom, dateTo, limit),
             );

@@ -1,4 +1,4 @@
-import { SettingModels } from "../../models/api/setting.model.js";
+import { SettingModels } from '../../models/api/setting.model.js';
 
 export const SettingService = {
     findOne: (proxy, shopId) =>

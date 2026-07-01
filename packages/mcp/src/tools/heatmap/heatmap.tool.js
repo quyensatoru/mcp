@@ -28,7 +28,11 @@ function formatSelectors(selectors, device) {
     const rows = selectors.map(
         (s, i) => `${i + 1}. ${s.clicks} clicks · ${s.points} points · ${abbreviate(s._id, 70)}`,
     );
-    return [`Top ${selectors.length} elements by interaction (device=${device}):`, '', ...rows].join('\n');
+    return [
+        `Top ${selectors.length} elements by interaction (device=${device}):`,
+        '',
+        ...rows,
+    ].join('\n');
 }
 
 function formatScroll(scrolls, device) {
@@ -52,7 +56,13 @@ export function registerHeatmapTools(server) {
                     .enum(['revenue-click', 'rage-click', 'dead-click', 'error-click'])
                     .optional()
                     .describe('Filter by click type'),
-                limit: z.number().int().min(1).max(200).default(30).describe('Max hotspots to return'),
+                limit: z
+                    .number()
+                    .int()
+                    .min(1)
+                    .max(200)
+                    .default(30)
+                    .describe('Max hotspots to return'),
             }),
         },
         wrap('heatmap_click', async ({ domain, pageViewId, device, type, limit }) => {

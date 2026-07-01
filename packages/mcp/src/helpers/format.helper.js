@@ -66,9 +66,8 @@ export function formatSessionDetail(data, domain, source) {
         `  frustrated: ${session.frustrated ? 'yes' : 'no'} · clicks: ${session.click_count ?? 0} · last_active: ${session.last_active ? new Date(session.last_active).toISOString() : '—'}`,
         `  customer: ${maskEmail(session.customer_email)}`,
         '',
-        
     ];
-    if(counts) {
+    if (counts) {
         lines.push(
             `Counts: ${counts.pageviews} pageviews · ${counts.events} rrweb events · ${counts.behaviors} behaviors`,
         );
@@ -112,7 +111,9 @@ export function formatSetting(setting, domain, source) {
         const as = setting.analytic_sync;
         lines.push(`  analytic_sync: ${as.status ? 'ON' : 'OFF'} · type=${as.sync_type ?? '—'}`);
     }
-    lines.push(`  updatedAt: ${setting.updatedAt ? new Date(setting.updatedAt).toISOString() : '—'}`);
+    lines.push(
+        `  updatedAt: ${setting.updatedAt ? new Date(setting.updatedAt).toISOString() : '—'}`,
+    );
     return lines.join('\n');
 }
 
@@ -136,7 +137,6 @@ export function formatShop(shop, proxy, source) {
         lines.push(`⚠️ Uninstalled: ${new Date(shop.uninstall_app_date).toISOString()}`);
     return lines.join('\n');
 }
-
 
 //Helpers
 export function redact(value) {

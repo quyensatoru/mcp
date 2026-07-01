@@ -26,7 +26,7 @@ export function registerModuleRecorderTools(server) {
             if (!shopId) {
                 return errorContent(`Shop not found: ${domain}`);
             }
-            
+
             const modules = await withCache(
                 cacheKey('recorder_get_module_config', { proxy, shopId }),
                 TTL,

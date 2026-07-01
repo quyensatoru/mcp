@@ -1,4 +1,4 @@
-import { RecorderSettingModels } from "../../models/recorder/setting.model.js";
+import { RecorderSettingModels } from '../../models/recorder/setting.model.js';
 
 export const RecorderSettingService = {
     findOne: (proxy, shopId) =>

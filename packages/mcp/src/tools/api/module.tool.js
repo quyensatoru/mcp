@@ -2,7 +2,12 @@ import { z } from 'zod';
 import { resolveProxy } from '../../services/proxy.service.js';
 import { ShopService } from '../../services/api/shop.service.js';
 import { cacheKey, withCache } from '../../helpers/redis.helper.js';
-import { textContent, errorContent, formatModule, formatConfiguration } from '../../helpers/format.helper.js';
+import {
+    textContent,
+    errorContent,
+    formatModule,
+    formatConfiguration,
+} from '../../helpers/format.helper.js';
 import { wrap } from '../../helpers/tool.helper.js';
 import { ModuleService } from '../../services/api/module.service.js';
 import { ConfigurationService } from '../../services/api/configuration.service.js';
@@ -42,7 +47,7 @@ export function registerModuleApiTools(server) {
         {
             title: 'Configuration (API)',
             description:
-                'Get the shop\'s Configuration from the API: heatmap page limit, survey limit, share_recording type, funnel_analytics definitions, and restrict_filter flags. Use to understand what plan-level features and limits apply to this shop.',
+                "Get the shop's Configuration from the API: heatmap page limit, survey limit, share_recording type, funnel_analytics definitions, and restrict_filter flags. Use to understand what plan-level features and limits apply to this shop.",
             inputSchema: z.object({
                 domain: z.string().describe('Shopify domain'),
             }),

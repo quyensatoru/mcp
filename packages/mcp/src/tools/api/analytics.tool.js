@@ -28,11 +28,11 @@ export function registerAnalyticsTools(server) {
             if (!shopId) {
                 return errorContent(`Shop not found: ${domain}`);
             }
-            
+
             const analytics = await withCache(
-                cacheKey('analytics', { domain, dateFrom, dateTo }), 
-                TTL, 
-                async () => AnalyticService.byDateRange(proxy, shopId, dateFrom, dateTo)
+                cacheKey('analytics', { domain, dateFrom, dateTo }),
+                TTL,
+                async () => AnalyticService.byDateRange(proxy, shopId, dateFrom, dateTo),
             );
 
             return textContent(formatAnalytics(analytics, domain, dateFrom, dateTo));

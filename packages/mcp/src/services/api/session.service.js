@@ -53,8 +53,7 @@ export const SessionService = {
             .lean()
             .exec(),
 
-    pageviewDetail: (proxy, pageViewId) =>
-        PageViewModels[proxy].findById(pageViewId).lean().exec(),
+    pageviewDetail: (proxy, pageViewId) => PageViewModels[proxy].findById(pageViewId).lean().exec(),
 
     countEvents: (proxy, pageViewIds) =>
         pageViewIds.length
@@ -82,7 +81,15 @@ export const SessionService = {
         const filter = { shop: shopId };
         if (created) filter.createdAt = created;
         return SessionMissingModels[proxy]
-            .find(filter, { key: 1, device: 1, browser: 1, location: 1, ip: 1, createdAt: 1, last_active: 1 })
+            .find(filter, {
+                key: 1,
+                device: 1,
+                browser: 1,
+                location: 1,
+                ip: 1,
+                createdAt: 1,
+                last_active: 1,
+            })
             .sort({ createdAt: -1 })
             .limit(limit)
             .lean()

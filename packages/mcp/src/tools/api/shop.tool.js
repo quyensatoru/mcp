@@ -25,7 +25,10 @@ export function registerShopTool(server) {
                 return { proxy, shop };
             });
             if (!data.shop)
-                return errorContent(`Shop not found in api: ${domain}`, 'Check the domain spelling.');
+                return errorContent(
+                    `Shop not found in api: ${domain}`,
+                    'Check the domain spelling.',
+                );
             return textContent(formatShop(data.shop, data.proxy, 'API'));
         }),
     );
