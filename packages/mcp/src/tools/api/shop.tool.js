@@ -2,30 +2,10 @@ import { z } from 'zod';
 import { resolveProxy } from '../../services/proxy.service.js';
 import { ShopService } from '../../services/api/shop.service.js';
 import { cacheKey, withCache } from '../../helpers/redis.helper.js';
-import { textContent, errorContent, pct } from '../../helpers/format.helper.js';
+import { textContent, errorContent, pct, formatShop } from '../../helpers/format.helper.js';
 import { wrap } from '../../helpers/tool.helper.js';
 
 const TTL = 120;
-
-function formatShopOverview(shop, proxy) {
-    const sub = shop.subscription_info ?? {};
-    const started = shop.started ?? {};
-    const lines = [
-        `Domain: ${shop.domain}`,
-        `Shard: ${proxy}`,
-        `Status: ${shop.status ? 'active' : 'inactive'}`,
-        `Plan: ${shop.plan_code ?? '—'} (${sub.title ?? '—'})`,
-        `Sessions: ${shop.session_count ?? 0} / ${sub.session_limit ?? '—'} (${pct(shop.session_count ?? 0, sub.session_limit)})`,
-        `AI session limit: ${sub.ai_session_limit ?? '—'} · storage: ${sub.storage_days ?? '—'} days`,
-        `Embed block: ${shop.embed_block ? 'ON' : 'OFF'} · pixel_id: ${shop.pixel_id ?? '—'}`,
-        `Daily quota: ${shop.daily_quota_enabled ? `${shop.daily_used_quota_limit ?? 0} / ${shop.quota_limit_per_day ?? '—'}` : 'disabled'}`,
-        `Onboarding: visitor=${started.view_visitor ? '✓' : '✗'} heatmap=${started.view_heatmap ? '✓' : '✗'} completed=${started.completed ? '✓' : '✗'}`,
-        `Country: ${shop.country ?? '—'} · Shopify plan: ${shop.shopify_plan ?? '—'}`,
-    ];
-    if (shop.uninstall_app_date)
-        lines.push(`⚠️ Uninstalled: ${new Date(shop.uninstall_app_date).toISOString()}`);
-    return lines.join('\n');
-}
 
 export function registerShopTool(server) {
     server.registerTool(
@@ -46,7 +26,7 @@ export function registerShopTool(server) {
             });
             if (!data.shop)
                 return errorContent(`Shop not found in api: ${domain}`, 'Check the domain spelling.');
-            return textContent(formatShopOverview(data.shop, data.proxy));
+            return textContent(formatShop(data.shop, data.proxy, 'API'));
         }),
     );
 }

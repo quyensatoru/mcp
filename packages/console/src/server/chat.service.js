@@ -137,7 +137,7 @@ export function handleChat(ws) {
 
             const canUseTool = await buildCanUseTool();
             const options = await configService.buildAgentOptions({
-                cwd,
+                cwd: path.join(cwd, '.claude'),
                 sessionId: sessionId || undefined,
                 canUseTool,
             });

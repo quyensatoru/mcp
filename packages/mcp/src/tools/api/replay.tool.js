@@ -94,7 +94,7 @@ export function registerReplayTools(server) {
             );
             return {
                 content: [
-                    imageContent(buffer, `screenshot rrweb replay @ ${seekMs}ms`),
+                    imageContent(buffer, `screenshot rrweb replay ${seekMs}ms`),
                     { type: 'text', text: formatRenderMeta({ pageViewId, eventCount: docs.length, seekMs, totalDuration, errors }) },
                 ],
             };
@@ -145,19 +145,27 @@ export function registerReplayTools(server) {
         wrap('replay_diagnose', async ({ domain, pageViewId, compareUrl, atMs, eventLimit }) => {
             const proxy = await resolveProxy(domain);
             const docs = await ReplayService.events(proxy, pageViewId, eventLimit);
-            if (!docs.length) return errorContent(`No events for pageView ${pageViewId}.`);
+
+            if (!docs.length) {
+                return errorContent(`No events for pageView ${pageViewId}.`);
+            }
 
             const [replay, live] = await Promise.all([
                 rrwebService.render(toRrwebEvents(docs), { atMs }),
                 screenshotService.capture(compareUrl, { viewport: { width: 1280, height: 800 } }),
             ]);
+
             const { diffBuffer, diffPercent, diffPixels, totalPixels } = diffImages(replay.buffer, live.buffer);
-            const verdict =
-                diffPercent > 30
-                    ? '🔴 large difference (>30%) — likely broken CSS/JS or layout'
-                    : diffPercent > 10
-                      ? '🟡 notable difference (10-30%) — possibly dynamic content'
-                      : '🟢 close match (<10%) — renders normally';
+            
+            let verdict = ''
+            
+            if(diffPercent > 30) {
+                verdict = '🔴 large difference (>30%) — likely broken CSS/JS or layout'
+            } else if (diffPercent > 10) {
+                verdict = '🟡 notable difference (10-30%) — possibly dynamic content'
+            } else {
+                verdict = '🟢 close match (<10%) — renders normally'
+            }
 
             return {
                 content: [
