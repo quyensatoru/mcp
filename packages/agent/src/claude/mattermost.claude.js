@@ -1,8 +1,12 @@
 import { logger } from '@mida/logger';
 import { WorkspaceManager } from '@mida/workspace';
-import { configService, READ_ONLY_REGEX, YES_REGEX } from '@mida/console';
+import { configService, READ_ONLY_REGEX, YES_REGEX, SessionStorage } from '@mida/claude-config';
+import { loopEngineerService } from '@mida/loop-engineer';
 import { createClaudeAgent, WORK_DIR, SESSIONS_DIR } from '../config/claude.config.js';
-import { sessionStorageModel } from '../schema/session-storage.schema.js';
+
+const LOOP_PREFIX = /^loop:\s*/i;
+const STOP_REGEX = /^(stop|dừng|dung)\b/i;
+const activeLoops = new Set(); // rootId of threads currently running a loop — lets a reply act as "stop"
 
 let botUserId = null;
 
@@ -13,39 +17,6 @@ const workspaceManager = new WorkspaceManager({ baseWorkDir: WORK_DIR, sessionsD
 workspaceManager.cleanupOld().catch((err) => {
     logger.warn('[workspace] startup cleanup error:', err.message);
 });
-
-// Caps concurrent agent runs (agentConfig.concurrency / BOT_MAX_CONCURRENCY).
-// Permission replies bypass the gate so a waiting session can always be unblocked.
-class Semaphore {
-    #max;
-    #cur = 0;
-    #queue = [];
-
-    constructor(max) {
-        this.#max = max;
-    }
-    setMax(m) {
-        if (Number.isFinite(m) && m > 0 && m !== this.#max) {
-            this.#max = m;
-            this.#drain();
-        }
-    }
-    async acquire() {
-        while (this.#cur >= this.#max) {
-            await new Promise((resolve) => this.#queue.push(resolve));
-        }
-        this.#cur++;
-    }
-    release() {
-        if (this.#cur > 0) this.#cur--;
-        this.#drain();
-    }
-    #drain() {
-        while (this.#cur < this.#max && this.#queue.length) this.#queue.shift()();
-    }
-}
-
-const sem = new Semaphore(3);
 
 function makeStreamUpdater(client, postId, loading, flushMs = 600) {
     let buffer = [];
@@ -181,6 +152,64 @@ function buildCanUseTool(client, channelId, rootId, { readOnlyRegex, approvalTim
     };
 }
 
+// Renders one Claude Agent SDK stream event into the post buffer — shared by
+// the normal single-turn path and each Loop Engineer iteration.
+function appendSdkEvent(updater, loadingGif, event) {
+    if (event.type === 'tool_use_summary') {
+        updater.append(`\n> 📋 ${event.summary.slice(0, 100)}\n`);
+        return;
+    }
+    if (event.type !== 'assistant') return;
+
+    for (const block of event.message?.content ?? []) {
+        switch (block.type) {
+            case 'text':
+                updater.stripLoading();
+                updater.append(block.text);
+                break;
+            case 'tool_use': {
+                updater.stripLoading();
+                const stringInput = JSON.stringify(block.input || '{}', null, 2);
+                updater.append(`\n>🔧 ${block.name}\n>\`\`\`json\n${stringInput}\n\`\`\``);
+                break;
+            }
+            case 'thinking':
+                updater.append(`\n>💭 ${loadingGif}\n`);
+                break;
+            case 'redacted_thinking':
+                updater.append(`\n>🔒 ${loadingGif}\n`);
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+function appendLoopEvent(updater, channel, rootId, channelId, evt) {
+    if (evt.type === 'iteration_start') {
+        updater.stripLoading();
+        updater.append(`\n\n---\n**🔁 Iteration ${evt.index}/${evt.maxIterations}**\n`);
+        return;
+    }
+    if (evt.type === 'iteration_end') {
+        const cost = evt.costUsd ? ` · $${evt.costUsd.toFixed(4)} · ${evt.turns} turns` : '';
+        updater.append(`\n_→ ${evt.status}${cost}_`);
+        return;
+    }
+    if (evt.type !== 'iteration_event') return;
+
+    const event = evt.event;
+    if (event.type === 'system' && event.subtype === 'init') {
+        SessionStorage.findOneAndUpdate(
+            { sessionId: event.session_id },
+            { threadId: rootId, channelId },
+            { upsert: true },
+        ).catch((err) => logger.warn('[loop] session map: ' + err.message));
+        return;
+    }
+    appendSdkEvent(updater, channel.loadingGif, event);
+}
+
 export const handleEvent = async (client, e) => {
     let message;
     try {
@@ -194,9 +223,9 @@ export const handleEvent = async (client, e) => {
     const post = JSON.parse(message.data.post);
     const rootId = post.root_id || post.id;
 
-    const channel = await configService.getChannelConfig();
+    const channel = await configService.channel.get();
 
-    const session = await sessionStorageModel.findOne({
+    const session = await SessionStorage.findOne({
         threadId: rootId,
         channelId: post.channel_id,
     });
@@ -245,12 +274,22 @@ export const handleEvent = async (client, e) => {
         return;
     }
 
+    if (activeLoops.has(rootId) && STOP_REGEX.test(post.message.trim())) {
+        loopEngineerService.engine.stop(rootId);
+        await client.createPost(
+            post.channel_id,
+            '🛑 Đã nhận lệnh dừng — loop sẽ dừng sau khi iteration hiện tại xong.',
+            { rootId },
+        );
+        return;
+    }
+
     if (!post.message.includes(channel.botMention) && !session) return;
 
     const reply = await client.createPost(post.channel_id, channel.loadingGif, { rootId });
     const updater = makeStreamUpdater(client, reply.id, channel.loadingGif, channel.streamFlushMs);
 
-    const guardrails = await configService.getGuardrails();
+    const guardrails = await configService.guardrail.get();
     const canUseTool = buildCanUseTool(client, post.channel_id, rootId, {
         readOnlyRegex: guardrails.autoApproveReadOnlyRegex,
         approvalTimeoutMs: channel.approvalTimeoutMs,
@@ -265,13 +304,29 @@ export const handleEvent = async (client, e) => {
         workDir = WORK_DIR;
     }
 
-    // Apply the concurrency cap from config; permission replies above are never gated.
-    const agentCfg = await configService.getAgentConfig();
-    sem.setMax(agentCfg.concurrency);
-    await sem.acquire();
-
     try {
-        const userText = post.message.replaceAll(channel.botMention, '');
+        const userText = post.message.replaceAll(channel.botMention, '').trim();
+
+        if (LOOP_PREFIX.test(userText)) {
+            activeLoops.add(rootId);
+            try {
+                const result = await loopEngineerService.engine.run({
+                    runKey: rootId,
+                    source: 'mattermost',
+                    prompt: userText.replace(LOOP_PREFIX, ''),
+                    cwd: workDir,
+                    canUseTool,
+                    onEvent: (evt) =>
+                        appendLoopEvent(updater, channel, rootId, post.channel_id, evt),
+                });
+                updater.append(`\n\n---\n🔁 Loop **${result.status}**`);
+            } finally {
+                activeLoops.delete(rootId);
+            }
+            await updater.done();
+            return;
+        }
+
         const { query: stream } = await createClaudeAgent(userText, session?.sessionId || '', {
             canUseTool,
             workDir,
@@ -279,17 +334,10 @@ export const handleEvent = async (client, e) => {
 
         for await (const event of stream) {
             if (event.type === 'system' && event.subtype === 'init') {
-                await sessionStorageModel.findOneAndUpdate(
-                    {
-                        sessionId: event.session_id,
-                    },
-                    {
-                        threadId: rootId,
-                        channelId: post.channel_id,
-                    },
-                    {
-                        upsert: true,
-                    },
+                await SessionStorage.findOneAndUpdate(
+                    { sessionId: event.session_id },
+                    { threadId: rootId, channelId: post.channel_id },
+                    { upsert: true },
                 );
                 continue;
             }
@@ -302,36 +350,7 @@ export const handleEvent = async (client, e) => {
                 continue;
             }
 
-            if (event.type === 'tool_use_summary') {
-                updater.append(`\n> 📋 ${event.summary.slice(0, 100)}\n`);
-                continue;
-            }
-
-            if (event.type !== 'assistant') continue;
-
-            for (const block of event.message?.content ?? []) {
-                switch (block.type) {
-                    case 'text':
-                        updater.stripLoading();
-                        updater.append(block.text);
-                        break;
-                    case 'tool_use': {
-                        updater.stripLoading();
-                        const name = block.name;
-                        const stringInput = JSON.stringify(block.input || '{}', null, 2);
-                        updater.append(`\n>🔧 ${name}\n>\`\`\`json\n${stringInput}\n\`\`\``);
-                        break;
-                    }
-                    case 'thinking':
-                        updater.append(`\n>💭 ${channel.loadingGif}\n`);
-                        break;
-                    case 'redacted_thinking':
-                        updater.append(`\n>🔒 ${channel.loadingGif}\n`);
-                        break;
-                    default:
-                        break;
-                }
-            }
+            appendSdkEvent(updater, channel.loadingGif, event);
         }
 
         await updater.done();
@@ -339,7 +358,5 @@ export const handleEvent = async (client, e) => {
         logger.error('handleEvent error: ' + err.message);
         updater.append(`\n\n❌ ${err.message}`);
         await updater.done();
-    } finally {
-        sem.release();
     }
 };

@@ -2,7 +2,7 @@ import http from 'node:http';
 import { WebSocketServer } from 'ws';
 import { env } from './server/env.js';
 import { logger } from '@mida/logger';
-import { configService } from './config/index.js';
+import { configService } from '@mida/claude-config';
 import { createApp } from './server/app.js';
 import { handleTerminal, handleChat } from './server/ws/index.js';
 

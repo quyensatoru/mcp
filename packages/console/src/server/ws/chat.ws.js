@@ -9,27 +9,35 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { logger } from '@mida/logger';
 import { WorkspaceManager } from '@mida/workspace';
-import { configService } from '../../config/index.js';
-import { READ_ONLY_REGEX } from '../../config/defaults.js';
+import { configService, READ_ONLY_REGEX } from '@mida/claude-config';
+import { loopEngineerService } from '@mida/loop-engineer';
 
-let _manager = null;
-let _baseWorkDir = null;
+let cachedManager = null;
+let cachedWorkDir = null;
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 
 const send = (ws, msg) => ws.readyState === 1 && ws.send(JSON.stringify(msg));
 
-const abs = (d) => (path.isAbsolute(d) ? d : path.resolve(REPO_ROOT, d));
+const abs = (dir) => (path.isAbsolute(dir) ? dir : path.resolve(REPO_ROOT, dir));
+
+function parseWsMessage(raw) {
+    try {
+        return JSON.parse(raw.toString());
+    } catch {
+        return null;
+    }
+}
 
 async function resolveDirs() {
     let workDir = 'workspace';
     let sessionsDir = 'sessions';
     try {
-        const ws = await configService.getWorkspaceConfig();
-        workDir = ws?.workDir || workDir;
-        sessionsDir = ws?.sessionsDir || sessionsDir;
-    } catch (e) {
-        logger.error(e);
+        const workspace = await configService.workspace.get();
+        workDir = workspace?.workDir || workDir;
+        sessionsDir = workspace?.sessionsDir || sessionsDir;
+    } catch (err) {
+        logger.error(err);
     }
     return { workDir: abs(workDir), sessionsDir: abs(sessionsDir) };
 }
@@ -37,41 +45,47 @@ async function resolveDirs() {
 async function getWorkspaceManager() {
     const { workDir: baseWorkDir, sessionsDir } = await resolveDirs();
 
-    _baseWorkDir = baseWorkDir;
+    cachedWorkDir = baseWorkDir;
 
-    if (!_manager) {
-        _manager = new WorkspaceManager({ baseWorkDir, sessionsDir });
+    if (!cachedManager) {
+        cachedManager = new WorkspaceManager({ baseWorkDir, sessionsDir });
     }
 
-    return _manager;
+    return cachedManager;
+}
+
+// A user SDK message's content is either a plain string or an array of blocks —
+// pick out the text blocks and join them.
+function extractUserText(content) {
+    if (typeof content === 'string') return content;
+    if (!Array.isArray(content)) return '';
+    return content
+        .filter((block) => block.type === 'text')
+        .map((block) => block.text)
+        .join('\n');
 }
 
 function parseMessages(sdkMessages) {
     const blocks = [];
-    for (const msg of sdkMessages) {
-        if (msg.type === 'user') {
-            const content = msg.message?.content;
-            const text =
-                typeof content === 'string'
-                    ? content
-                    : ((Array.isArray(content)
-                          ? content
-                                .filter((b) => b.type === 'text')
-                                .map((b) => b.text)
-                                .join('\n')
-                          : '') ?? '');
+
+    for (const message of sdkMessages) {
+        if (message.type === 'user') {
+            const text = extractUserText(message.message?.content);
             if (text.trim()) blocks.push({ kind: 'user', text });
-        } else if (msg.type === 'assistant') {
-            const content = msg.message?.content;
-            for (const block of Array.isArray(content) ? content : []) {
-                if (block.type === 'text' && block.text?.trim()) {
-                    blocks.push({ kind: 'text', text: block.text });
-                } else if (block.type === 'tool_use') {
-                    blocks.push({ kind: 'tool', name: block.name, input: block.input });
-                }
+            continue;
+        }
+        if (message.type !== 'assistant') continue;
+
+        const content = message.message?.content;
+        for (const block of Array.isArray(content) ? content : []) {
+            if (block.type === 'text' && block.text?.trim()) {
+                blocks.push({ kind: 'text', text: block.text });
+            } else if (block.type === 'tool_use') {
+                blocks.push({ kind: 'tool', name: block.name, input: block.input });
             }
         }
     }
+
     return blocks;
 }
 
@@ -84,24 +98,24 @@ export function handleChat(ws) {
     let seq = 0;
 
     const buildCanUseTool = async () => {
-        let readOnly = READ_ONLY_REGEX;
+        let pattern = READ_ONLY_REGEX;
         let timeoutMs = 120000;
         try {
-            const [guard, channel] = await Promise.all([
-                configService.getGuardrails(),
-                configService.getChannelConfig(),
+            const [guardrail, channel] = await Promise.all([
+                configService.guardrail.get(),
+                configService.channel.get(),
             ]);
-            readOnly = guard.autoApproveReadOnlyRegex || readOnly;
+            pattern = guardrail.autoApproveReadOnlyRegex || pattern;
             timeoutMs = channel.approvalTimeoutMs || timeoutMs;
-        } catch (e) {
-            logger.error(e);
+        } catch (err) {
+            logger.error(err);
         }
-        const RE = new RegExp(readOnly, 'i');
+        const matcher = new RegExp(pattern, 'i');
 
         return async (toolName, input, options) => {
             if (!toolName.startsWith('mcp__')) return { behavior: 'allow', updatedInput: input };
             const local = toolName.split('__').pop() ?? '';
-            if (RE.test(local)) return { behavior: 'allow', updatedInput: input };
+            if (matcher.test(local)) return { behavior: 'allow', updatedInput: input };
 
             const id = String(++seq);
             send(ws, {
@@ -121,27 +135,54 @@ export function handleChat(ws) {
         };
     };
 
+    const ensureWorkspace = async () => {
+        if (cwd) return;
+        chatKey = `chat-${randomUUID().slice(0, 8)}`;
+        try {
+            const manager = await getWorkspaceManager();
+            cwd = await manager.setup(chatKey);
+            send(ws, { type: 'workspace', key: chatKey, dir: cwd });
+        } catch (err) {
+            logger.warn('[chat] worktree setup failed, using shared workspace: ' + err.message);
+            cwd = cachedWorkDir || (await resolveDirs()).workDir;
+            send(ws, { type: 'workspace', key: null, dir: cwd });
+        }
+    };
+
+    // Translates one Claude Agent SDK stream event into WS message(s). `extra`
+    // (e.g. { iteration: 2 }) is merged in so the client can route loop events
+    // to the right iteration card instead of the main thread.
+    const sendSdkEvent = (event, extra) => {
+        if (event.type === 'tool_use_summary') {
+            send(ws, { type: 'summary', summary: event.summary, ...extra });
+            return;
+        }
+        if (event.type !== 'assistant') return;
+        for (const block of event.message?.content ?? []) {
+            switch (block.type) {
+                case 'text':
+                    send(ws, { type: 'text', text: block.text, ...extra });
+                    break;
+                case 'tool_use':
+                    send(ws, { type: 'tool', name: block.name, input: block.input, ...extra });
+                    break;
+                case 'thinking':
+                    send(ws, { type: 'thinking', ...extra });
+                    break;
+                default:
+                    logger.warn('[chat] unknown block type: ' + block.type);
+            }
+        }
+    };
+
     const run = async (text) => {
         if (running) return send(ws, { type: 'error', message: 'The agent is busy.' });
         running = true;
         try {
-            if (!cwd) {
-                chatKey = `chat-${randomUUID().slice(0, 8)}`;
-                try {
-                    const mgr = await getWorkspaceManager();
-                    cwd = await mgr.setup(chatKey);
-                    send(ws, { type: 'workspace', key: chatKey, dir: cwd });
-                } catch (e) {
-                    logger.warn(
-                        '[chat] worktree setup failed, using shared workspace: ' + e.message,
-                    );
-                    cwd = _baseWorkDir || (await resolveDirs()).workDir;
-                    send(ws, { type: 'workspace', key: null, dir: cwd });
-                }
-            }
+            await ensureWorkspace();
 
             const canUseTool = await buildCanUseTool();
-            const options = await configService.buildAgentOptions({
+            const options = await configService.agent.buildOptions({
                 cwd,
                 sessionId: sessionId || undefined,
                 canUseTool,
@@ -164,26 +205,7 @@ export function handleChat(ws) {
                     });
                     continue;
                 }
-                if (event.type === 'tool_use_summary') {
-                    send(ws, { type: 'summary', summary: event.summary });
-                    continue;
-                }
-                if (event.type !== 'assistant') continue;
-                for (const block of event.message?.content ?? []) {
-                    switch (block.type) {
-                        case 'text':
-                            send(ws, { type: 'text', text: block.text });
-                            break;
-                        case 'tool_use':
-                            send(ws, { type: 'tool', name: block.name, input: block.input });
-                            break;
-                        case 'thinking':
-                            send(ws, { type: 'thinking' });
-                            break;
-                        default:
-                            logger.warn('[chat] unknown block type: ' + block.type);
-                    }
-                }
+                sendSdkEvent(event);
             }
             send(ws, { type: 'done' });
         } catch (err) {
@@ -194,78 +216,169 @@ export function handleChat(ws) {
         }
     };
 
-    ws.on('message', (raw) => {
-        let msg;
-        try {
-            msg = JSON.parse(raw.toString());
-        } catch {
-            return;
-        }
-
-        if (msg.type === 'user' && msg.text) {
-            send(ws, { type: 'ack' });
-            run(msg.text);
-        } else if (msg.type === 'approval_reply') {
-            const p = pending.get(msg.id);
-            if (p) {
-                clearTimeout(p.timer);
-                pending.delete(msg.id);
-                p.resolve(
-                    msg.allow
-                        ? { behavior: 'allow', updatedInput: p.input }
-                        : { behavior: 'deny', message: 'Người dùng từ chối' },
-                );
-            }
-        } else if (msg.type === 'resume' && msg.sessionId) {
-            (async () => {
-                const [info, message] = await Promise.all([
-                    getSessionInfo(msg.sessionId).catch(() => null),
-                    getSessionMessages(msg.sessionId).catch(() => []),
-                ]);
-                sessionId = msg.sessionId;
-                if (info?.cwd) {
-                    cwd = info.cwd;
-                    const basename = path.basename(info.cwd);
-                    send(ws, { type: 'workspace', key: basename, dir: cwd });
+    const onLoopEvent = (event) => {
+        switch (event.type) {
+            case 'iteration_start':
+                send(ws, {
+                    type: 'loop_iteration_start',
+                    index: event.index,
+                    maxIterations: event.maxIterations,
+                });
+                return;
+            case 'iteration_end':
+                send(ws, {
+                    type: 'loop_iteration_end',
+                    index: event.index,
+                    status: event.status,
+                    costUsd: event.costUsd,
+                    turns: event.turns,
+                    summary: event.summary,
+                });
+                return;
+            case 'iteration_event': {
+                const sdkEvent = event.event;
+                if (sdkEvent.type === 'system' && sdkEvent.subtype === 'init') {
+                    sessionId = sdkEvent.session_id;
+                    send(ws, { type: 'session', sessionId });
+                    return;
                 }
-                send(ws, { type: 'history', messages: parseMessages(message) });
-            })().catch((e) => send(ws, { type: 'error', message: e.message }));
-        } else if (msg.type === 'new_chat') {
-            sessionId = '';
-            cwd = null;
-            chatKey = null;
-            for (const p of pending.values()) {
-                clearTimeout(p.timer);
-                p.resolve({ behavior: 'deny', message: 'Phiên mới' });
+                sendSdkEvent(sdkEvent, { iteration: event.index });
             }
-            pending.clear();
-            send(ws, { type: 'ready' });
-        } else if (msg.type === 'list_sessions') {
-            (async () => {
-                const { workDir, sessionsDir } = await resolveDirs();
-                const all = await listSessions().catch(() => []);
-                const sessions = all
-                    .filter(
-                        (s) => !s.cwd || s.cwd.startsWith(sessionsDir) || s.cwd.startsWith(workDir),
-                    )
-                    .map((s) => ({
-                        id: s.sessionId,
-                        title: s.summary || s.firstPrompt || null,
-                        createdAt: s.createdAt ?? s.lastModified,
-                        lastModified: s.lastModified,
-                        cwd: s.cwd,
-                        gitBranch: s.gitBranch ?? null,
-                    }))
-                    .sort((a, b) => (b.lastModified ?? 0) - (a.lastModified ?? 0));
-                send(ws, { type: 'sessions', sessions });
-            })().catch((e) => send(ws, { type: 'error', message: e.message }));
+        }
+    };
+
+    const runLoop = async (text) => {
+        if (running) return send(ws, { type: 'error', message: 'The agent is busy.' });
+        running = true;
+        try {
+            await ensureWorkspace();
+            const canUseTool = await buildCanUseTool();
+            const runKey = chatKey || sessionId || cwd;
+
+            send(ws, { type: 'loop_start', runKey });
+            const result = await loopEngineerService.engine.run({
+                runKey,
+                source: 'chat',
+                prompt: text,
+                cwd,
+                canUseTool,
+                onEvent: onLoopEvent,
+            });
+
+            send(ws, { type: 'loop_done', status: result.status });
+        } catch (err) {
+            logger.error('[chat] loop: ' + err.message);
+            send(ws, { type: 'error', message: err.message });
+        } finally {
+            running = false;
+        }
+    };
+
+    function handleApprovalReply(reply) {
+        const entry = pending.get(reply.id);
+        if (!entry) return;
+
+        clearTimeout(entry.timer);
+        pending.delete(reply.id);
+        entry.resolve(
+            reply.allow
+                ? { behavior: 'allow', updatedInput: entry.input }
+                : { behavior: 'deny', message: 'Người dùng từ chối' },
+        );
+    }
+
+    async function handleResume(resumeSessionId) {
+        try {
+            const [info, history] = await Promise.all([
+                getSessionInfo(resumeSessionId).catch(() => null),
+                getSessionMessages(resumeSessionId).catch(() => []),
+            ]);
+            sessionId = resumeSessionId;
+            if (info?.cwd) {
+                cwd = info.cwd;
+                send(ws, { type: 'workspace', key: path.basename(info.cwd), dir: cwd });
+            }
+            send(ws, { type: 'history', messages: parseMessages(history) });
+        } catch (err) {
+            send(ws, { type: 'error', message: err.message });
+        }
+    }
+
+    function handleNewChat() {
+        sessionId = '';
+        cwd = null;
+        chatKey = null;
+        for (const entry of pending.values()) {
+            clearTimeout(entry.timer);
+            entry.resolve({ behavior: 'deny', message: 'Phiên mới' });
+        }
+        pending.clear();
+        send(ws, { type: 'ready' });
+    }
+
+    async function handleListSessions() {
+        try {
+            const { workDir, sessionsDir } = await resolveDirs();
+            const all = await listSessions().catch(() => []);
+            const sessions = all
+                .filter(
+                    (session) =>
+                        !session.cwd ||
+                        session.cwd.startsWith(sessionsDir) ||
+                        session.cwd.startsWith(workDir),
+                )
+                .map((session) => ({
+                    id: session.sessionId,
+                    title: session.summary || session.firstPrompt || null,
+                    createdAt: session.createdAt ?? session.lastModified,
+                    lastModified: session.lastModified,
+                    cwd: session.cwd,
+                    gitBranch: session.gitBranch ?? null,
+                }))
+                .sort((a, b) => (b.lastModified ?? 0) - (a.lastModified ?? 0));
+            send(ws, { type: 'sessions', sessions });
+        } catch (err) {
+            send(ws, { type: 'error', message: err.message });
+        }
+    }
+
+    ws.on('message', (raw) => {
+        const msg = parseWsMessage(raw);
+        if (!msg) return;
+
+        switch (msg.type) {
+            case 'user':
+                if (!msg.text) return;
+                send(ws, { type: 'ack' });
+                run(msg.text);
+                return;
+            case 'loop_start':
+                if (!msg.text) return;
+                send(ws, { type: 'ack' });
+                runLoop(msg.text);
+                return;
+            case 'loop_stop':
+                loopEngineerService.engine.stop(chatKey || sessionId || cwd);
+                return;
+            case 'approval_reply':
+                handleApprovalReply(msg);
+                return;
+            case 'resume':
+                if (msg.sessionId) handleResume(msg.sessionId);
+                return;
+            case 'new_chat':
+                handleNewChat();
+                return;
+            case 'list_sessions':
+                handleListSessions();
+                return;
         }
     });
 
     ws.on('close', () => {
-        for (const p of pending.values()) {
-            clearTimeout(p.timer);
-            p.resolve({ behavior: 'deny', message: 'Kết nối đóng' });
+        for (const entry of pending.values()) {
+            clearTimeout(entry.timer);
+            entry.resolve({ behavior: 'deny', message: 'Kết nối đóng' });
         }
         pending.clear();
     });

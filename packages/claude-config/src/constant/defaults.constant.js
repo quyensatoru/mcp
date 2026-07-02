@@ -20,7 +20,6 @@ export function buildDefaults(env = process.env) {
             ],
             allowedTools: [],
             systemPromptAppend: '',
-            concurrency: Number(env.BOT_MAX_CONCURRENCY || 3),
         },
 
         mcpServers: [

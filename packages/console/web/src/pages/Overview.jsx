@@ -30,7 +30,6 @@ export default function Overview({ data }) {
                 />
                 <Metric label="Subagents" val={data.subagents.length} sub="đã định nghĩa" />
                 <Metric label="Secrets" val={data.secrets.length} sub="trong vault" />
-                <Metric label="Concurrency" val={data.agent.concurrency} sub="session đồng thời" />
             </div>
 
             <Card title="Agent runtime" desc="Giá trị áp dụng cho mọi session mới">

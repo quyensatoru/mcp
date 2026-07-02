@@ -1,16 +1,10 @@
 {
     "name": "@mida/console",
     "version": "1.0.0",
-    "description": "Mida Console — dynamic config control-plane (config layer, API server, dashboard)",
+    "description": "Mida Console — API server + dashboard for the agent harness",
     "type": "module",
-    "main": "src/config/index.js",
-    "exports": {
-        ".": "./src/config/index.js",
-        "./server": "./src/index.js"
-    },
+    "main": "src/index.js",
     "scripts": {
-        "seed": "node scripts/seed.js",
-        "test": "node --test \"test/**/*.test.js\"",
         "dev": "node src/index.js",
         "start": "node src/index.js",
         "dev:web": "vite --config web/vite.config.js",
@@ -21,11 +15,12 @@
     "license": "ISC",
     "dependencies": {
         "@anthropic-ai/claude-agent-sdk": "^0.3.196",
+        "@mida/claude-config": "workspace:*",
+        "@mida/loop-engineer": "workspace:*",
         "@mida/logger": "workspace:*",
         "@mida/workspace": "workspace:*",
         "dotenv": "^17.4.2",
         "express": "^5.2.1",
-        "mongoose": "^8.24.0",
         "ws": "^8.21.0",
         "zod": "^4.4.3"
     },

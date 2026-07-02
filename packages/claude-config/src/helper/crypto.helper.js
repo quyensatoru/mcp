@@ -24,9 +24,7 @@ export function decrypt(stored) {
     if (!stored?.encrypted) return stored?.value ?? '';
 
     const key = getKey();
-    if (!key) {
-        return '';
-    }
+    if (!key) return '';
 
     const [iv, tag, enc] = String(stored.value).split(':');
     const decipher = crypto.createDecipheriv(ALGO, key, Buffer.from(iv, 'base64'));

@@ -9,7 +9,7 @@ const branchRuleSchema = new mongoose.Schema(
 );
 
 // Singleton: workspace dirs, worktree cleanup + branch naming rules, GitLab sync target.
-export const workspaceConfigSchema = new mongoose.Schema(
+const workspaceConfigSchema = new mongoose.Schema(
     {
         _k: { type: String, default: 'singleton', unique: true },
         workDir: { type: String, default: 'workspace' },
@@ -24,3 +24,5 @@ export const workspaceConfigSchema = new mongoose.Schema(
     },
     { versionKey: false, timestamps: true },
 );
+
+export const WorkspaceConfig = mongoose.model('WorkspaceConfig', workspaceConfigSchema);

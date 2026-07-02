@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { listSessions, getSessionMessages } from '@anthropic-ai/claude-agent-sdk';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { configService } from '../../config/index.js';
+import { configService } from '@mida/claude-config';
 import { logger } from '@mida/logger';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../..');
@@ -12,7 +12,7 @@ async function resolveDirs() {
     let workDir = 'workspace';
     let sessionsDir = 'sessions';
     try {
-        const ws = await configService.getWorkspaceConfig();
+        const ws = await configService.workspace.get();
         workDir = ws?.workDir || workDir;
         sessionsDir = ws?.sessionsDir || sessionsDir;
     } catch (e) {

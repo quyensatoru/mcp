@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-export const subagentSchema = new mongoose.Schema(
+const subagentSchema = new mongoose.Schema(
     {
         name: { type: String, unique: true },
         description: { type: String, default: '' },
@@ -11,3 +11,5 @@ export const subagentSchema = new mongoose.Schema(
     },
     { versionKey: false, timestamps: true },
 );
+
+export const Subagent = mongoose.model('Subagent', subagentSchema);

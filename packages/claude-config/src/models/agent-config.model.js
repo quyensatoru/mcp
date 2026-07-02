@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 // Singleton: one document holds the agent runtime config + system prompt.
-export const agentConfigSchema = new mongoose.Schema(
+const agentConfigSchema = new mongoose.Schema(
     {
         _k: { type: String, default: 'singleton', unique: true },
         model: String,
@@ -16,7 +16,8 @@ export const agentConfigSchema = new mongoose.Schema(
         disallowedTools: { type: [String], default: [] },
         allowedTools: { type: [String], default: [] },
         settingSources: { type: [String], default: ['project'] },
-        concurrency: { type: Number, default: 3 },
     },
     { versionKey: false, timestamps: true },
 );
+
+export const AgentConfig = mongoose.model('AgentConfig', agentConfigSchema);

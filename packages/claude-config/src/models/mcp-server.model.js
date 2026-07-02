@@ -10,7 +10,7 @@ const envEntrySchema = new mongoose.Schema(
     { _id: false },
 );
 
-export const mcpServerSchema = new mongoose.Schema(
+const mcpServerSchema = new mongoose.Schema(
     {
         name: { type: String, unique: true },
         enabled: { type: Boolean, default: true },
@@ -23,3 +23,5 @@ export const mcpServerSchema = new mongoose.Schema(
     },
     { versionKey: false, timestamps: true },
 );
+
+export const McpServer = mongoose.model('McpServer', mcpServerSchema);

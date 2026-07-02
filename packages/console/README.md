@@ -6,16 +6,13 @@ Control-plane cho monorepo mida-rca: **single source of truth cho cấu hình đ
 
 ## Kiến trúc
 
+Lớp config (configService, models, buildAgentOptions) và loop engine đã tách sang
+`@mida/claude-config` và `@mida/loop-engineer` — console chỉ còn tiêu thụ hai package
+đó, không sở hữu config nữa. `@mida/agent` (Mattermost) import thẳng hai package này,
+không còn phụ thuộc vào `@mida/console`.
+
 ```
 src/
-  config/                 # ◀── @mida/agent import từ đây (configService)
-    models/               # 7 Mongoose model: agent · mcp-server · subagent · guardrail
-                          #   · channel · workspace · secret  (connection riêng)
-    defaults.js           # buildDefaults(env) — seed-from-env, giữ nguyên hành vi cũ
-    seed.js               # seedIfEmpty — idempotent
-    crypto.js             # AES-256-GCM cho secret (khi có CONSOLE_MASTER_KEY)
-    config.service.js     # configService: get/set + cache (TTL + changeStream)
-                          #   + buildClaudeBase/McpServers/Agents/Hooks/AgentOptions
   server/
     app.js                # Express: /api/config, /api/sessions, /api/files, /api/git + serve web/dist
     auth.js               # bearer token (CONSOLE_TOKEN)
@@ -30,8 +27,8 @@ web/                      # Vite + React + Tailwind dashboard → build ra web/d
 ## Chạy
 
 ```bash
-cp .env.example .env                 # điền MONGO_URI (hoặc dùng chung packages/agent/.env)
-pnpm --filter @mida/console seed     # seed config từ env (in ra effective runtime)
+cp .env.example .env                    # điền MONGO_URI (hoặc dùng chung packages/agent/.env)
+pnpm --filter @mida/claude-config seed  # seed config từ env (in ra effective runtime)
 pnpm --filter @mida/console build:web
 node packages/console/src/index.js   # → http://localhost:4000
 
@@ -55,5 +52,5 @@ pnpm --filter @mida/console dev:web  # vite :5173, proxy /api + /ws → :4000
 ## Test
 
 ```bash
-pnpm --filter @mida/console test     # node:test — crypto + defaults (không cần DB)
+pnpm --filter @mida/claude-config test   # node:test — crypto + defaults (không cần DB)
 ```

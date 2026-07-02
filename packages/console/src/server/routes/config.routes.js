@@ -10,13 +10,13 @@ export function configRouter(configService) {
         wraper(async (_req, res) => {
             const [agent, mcpServers, subagents, guardrails, channel, workspace, secrets] =
                 await Promise.all([
-                    configService.getAgentConfig(),
-                    configService.listMcpServers(),
-                    configService.listSubagents(),
-                    configService.getGuardrails(),
-                    configService.getChannelConfig(),
-                    configService.getWorkspaceConfig(),
-                    configService.listSecretKeys(),
+                    configService.agent.get(),
+                    configService.mcp.list(),
+                    configService.subagent.list(),
+                    configService.guardrail.get(),
+                    configService.channel.get(),
+                    configService.workspace.get(),
+                    configService.secret.list(),
                 ]);
             res.json({ agent, mcpServers, subagents, guardrails, channel, workspace, secrets });
         }),
@@ -32,84 +32,68 @@ export function configRouter(configService) {
             wraper(async (req, res) => res.json(await set(req.body))),
         );
     };
-    singleton(
-        '/agent',
-        () => configService.getAgentConfig(),
-        (b) => configService.setAgentConfig(b),
-    );
-    singleton(
-        '/guardrails',
-        () => configService.getGuardrails(),
-        (b) => configService.setGuardrails(b),
-    );
-    singleton(
-        '/channel',
-        () => configService.getChannelConfig(),
-        (b) => configService.setChannelConfig(b),
-    );
-    singleton(
-        '/workspace',
-        () => configService.getWorkspaceConfig(),
-        (b) => configService.setWorkspaceConfig(b),
-    );
+    singleton('/agent', configService.agent.get, configService.agent.set);
+    singleton('/guardrails', configService.guardrail.get, configService.guardrail.set);
+    singleton('/channel', configService.channel.get, configService.channel.set);
+    singleton('/workspace', configService.workspace.get, configService.workspace.set);
 
     r.get(
         '/mcp-servers',
-        wraper(async (_req, res) => res.json(await configService.listMcpServers())),
+        wraper(async (_req, res) => res.json(await configService.mcp.list())),
     );
     r.post(
         '/mcp-servers',
         wraper(async (req, res) => {
             const { name, ...rest } = req.body;
             if (!name) return res.status(400).json({ error: 'name is required' });
-            res.json(await configService.upsertMcpServer(name, rest));
+            res.json(await configService.mcp.upsert(name, rest));
         }),
     );
     r.delete(
         '/mcp-servers/:name',
         wraper(async (req, res) => {
-            await configService.deleteMcpServer(req.params.name);
+            await configService.mcp.delete(req.params.name);
             res.json({ ok: true });
         }),
     );
 
     r.get(
         '/subagents',
-        wraper(async (_req, res) => res.json(await configService.listSubagents())),
+        wraper(async (_req, res) => res.json(await configService.subagent.list())),
     );
     r.post(
         '/subagents',
         wraper(async (req, res) => {
             const { name, ...rest } = req.body;
             if (!name) return res.status(400).json({ error: 'name is required' });
-            res.json(await configService.upsertSubagent(name, rest));
+            res.json(await configService.subagent.upsert(name, rest));
         }),
     );
     r.delete(
         '/subagents/:name',
         wraper(async (req, res) => {
-            await configService.deleteSubagent(req.params.name);
+            await configService.subagent.delete(req.params.name);
             res.json({ ok: true });
         }),
     );
 
     r.get(
         '/secrets',
-        wraper(async (_req, res) => res.json(await configService.listSecretKeys())),
+        wraper(async (_req, res) => res.json(await configService.secret.list())),
     );
     r.put(
         '/secrets/:key',
         wraper(async (req, res) => {
             if (req.body?.value == null)
                 return res.status(400).json({ error: 'value is required' });
-            await configService.setSecret(req.params.key, req.body.value, 'console');
+            await configService.secret.set(req.params.key, req.body.value, 'console');
             res.json({ ok: true });
         }),
     );
     r.delete(
         '/secrets/:key',
         wraper(async (req, res) => {
-            await configService.deleteSecret(req.params.key);
+            await configService.secret.delete(req.params.key);
             res.json({ ok: true });
         }),
     );

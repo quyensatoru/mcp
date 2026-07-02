@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 // Singleton: guardrail rules compiled into agent hooks + auto-approve logic.
-export const guardrailSchema = new mongoose.Schema(
+const guardrailSchema = new mongoose.Schema(
     {
         _k: { type: String, default: 'singleton', unique: true },
         // Regex sources (strings) of bash commands to block in PreToolUse.
@@ -17,3 +17,5 @@ export const guardrailSchema = new mongoose.Schema(
     },
     { versionKey: false, timestamps: true },
 );
+
+export const Guardrail = mongoose.model('Guardrail', guardrailSchema);

@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 // Encrypted-at-rest credential vault. `value` is ciphertext when encrypted=true.
-export const secretSchema = new mongoose.Schema(
+const secretSchema = new mongoose.Schema(
     {
         key: { type: String, unique: true },
         value: { type: String, default: '' },
@@ -10,3 +10,5 @@ export const secretSchema = new mongoose.Schema(
     },
     { versionKey: false, timestamps: true },
 );
+
+export const Secret = mongoose.model('Secret', secretSchema);

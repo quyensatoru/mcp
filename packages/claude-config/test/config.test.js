@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { encrypt, decrypt } from '../src/config/crypto.js';
-import { buildDefaults } from '../src/config/defaults.js';
+import { encrypt, decrypt } from '../src/helper/crypto.helper.js';
+import { buildDefaults } from '../src/constant/defaults.constant.js';
 
 // getKey() reads process.env at call time, so toggling the env between tests is enough.
 test('crypto: encrypts + round-trips when CONSOLE_MASTER_KEY is set', () => {

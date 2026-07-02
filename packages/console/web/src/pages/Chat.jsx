@@ -43,6 +43,9 @@ export default function Chat({ onNavigateToWorktree }) {
     const [saOpen, setSaOpen] = useState(false);
     const [saFilter, setSaFilter] = useState('all');
     const [saAutoScroll, setSaAutoScroll] = useState(true);
+    const [loopOpen, setLoopOpen] = useState(false);
+    const [loopStatus, setLoopStatus] = useState(null);
+    const [loopIterations, setLoopIterations] = useState([]);
     const [, setTick] = useState(0);
     const wsRef = useRef(null);
     const msgsRef = useRef(null);
@@ -55,6 +58,12 @@ export default function Chat({ onNavigateToWorktree }) {
     };
 
     const add = (b) => setBlocks((bs) => [...bs, { id: ++uid, ...b }]);
+    const addToIteration = (index, b) =>
+        setLoopIterations((list) =>
+            list.map((it) =>
+                it.index === index ? { ...it, blocks: [...it.blocks, { id: ++uid, ...b }] } : it,
+            ),
+        );
 
     const refreshSessions = useCallback(() => {
         setLoadingSessions(true);
@@ -84,13 +93,49 @@ export default function Chat({ onNavigateToWorktree }) {
             const m = JSON.parse(ev.data);
             switch (m.type) {
                 case 'text':
-                    add({ kind: 'text', text: m.text });
+                    if (m.iteration != null)
+                        addToIteration(m.iteration, { kind: 'text', text: m.text });
+                    else add({ kind: 'text', text: m.text });
                     break;
                 case 'tool':
-                    add({ kind: 'tool', name: m.name, input: m.input });
+                    if (m.iteration != null)
+                        addToIteration(m.iteration, { kind: 'tool', name: m.name, input: m.input });
+                    else add({ kind: 'tool', name: m.name, input: m.input });
                     break;
                 case 'thinking':
-                    add({ kind: 'thinking' });
+                    if (m.iteration != null) addToIteration(m.iteration, { kind: 'thinking' });
+                    else add({ kind: 'thinking' });
+                    break;
+                case 'loop_start':
+                    setLoopOpen(true);
+                    setLoopStatus('running');
+                    setLoopIterations([]);
+                    break;
+                case 'loop_iteration_start':
+                    setLoopIterations((list) => [
+                        ...list,
+                        { index: m.index, status: 'running', blocks: [], startedAt: Date.now() },
+                    ]);
+                    break;
+                case 'loop_iteration_end':
+                    setLoopIterations((list) =>
+                        list.map((it) =>
+                            it.index === m.index
+                                ? {
+                                      ...it,
+                                      status: m.status,
+                                      costUsd: m.costUsd,
+                                      turns: m.turns,
+                                      summary: m.summary,
+                                  }
+                                : it,
+                        ),
+                    );
+                    break;
+                case 'loop_done':
+                    setLoopStatus(m.status);
+                    setBusy(false);
+                    refreshSessions();
                     break;
                 case 'subagent':
                     setSaOpen(true);
@@ -185,16 +230,19 @@ export default function Chat({ onNavigateToWorktree }) {
     const clearFinishedSa = () => setSubagents((list) => list.filter((s) => s.status !== 'done'));
     const runningSaCount = subagents.filter((s) => s.status === 'running').length;
 
-    const send = () => {
+    const submit = (type) => {
         if (!text.trim() || wsRef.current?.readyState !== 1 || busy) return;
         add({ kind: 'user', text: text.trim() });
-        wsRef.current.send(JSON.stringify({ type: 'user', text: text.trim() }));
+        wsRef.current.send(JSON.stringify({ type, text: text.trim() }));
         setText('');
         if (taRef.current) {
             taRef.current.style.height = 'auto';
         }
         setBusy(true);
     };
+    const send = () => submit('user');
+    const sendLoop = () => submit('loop_start');
+    const stopLoop = () => wsRef.current?.send(JSON.stringify({ type: 'loop_stop' }));
 
     const reply = (block, allow) => {
         wsRef.current?.send(
@@ -342,6 +390,15 @@ export default function Chat({ onNavigateToWorktree }) {
                 <div className="chat-toolbar">
                     <span className="sp" />
                     <button
+                        className={'sa-toggle' + (loopOpen ? ' active' : '')}
+                        onClick={() => setLoopOpen((o) => !o)}
+                    >
+                        🔁 Loop
+                        <span className={'sa-cnt' + (loopIterations.length ? '' : ' zero')}>
+                            {loopIterations.length}
+                        </span>
+                    </button>
+                    <button
                         className={'sa-toggle' + (saOpen ? ' active' : '')}
                         onClick={() => setSaOpen((o) => !o)}
                     >
@@ -419,6 +476,15 @@ export default function Chat({ onNavigateToWorktree }) {
                         />
                         <button
                             className="send"
+                            onClick={sendLoop}
+                            disabled={busy || !connected}
+                            title="Gửi dạng Loop Engineer — tự lặp plan/implement/verify đến khi xong"
+                            aria-label="Gửi dạng Loop"
+                        >
+                            🔁
+                        </button>
+                        <button
+                            className="send"
                             onClick={send}
                             disabled={busy || !connected}
                             aria-label="Gửi"
@@ -428,6 +494,14 @@ export default function Chat({ onNavigateToWorktree }) {
                     </div>
                 </div>
             </div>
+
+            <LoopPanel
+                open={loopOpen}
+                onClose={() => setLoopOpen(false)}
+                status={loopStatus}
+                iterations={loopIterations}
+                onStop={stopLoop}
+            />
 
             <SubagentPanel
                 open={saOpen}
@@ -441,6 +515,88 @@ export default function Chat({ onNavigateToWorktree }) {
                 onClear={clearFinishedSa}
                 tlRefs={saRefs}
             />
+        </div>
+    );
+}
+
+const LOOP_STATUS_LABEL = {
+    running: 'đang chạy',
+    done: 'hoàn tất',
+    stopped: 'đã dừng',
+    max_reached: 'hết số vòng',
+    error: 'lỗi',
+};
+const loopDotClass = (status) =>
+    status === 'running' ? 'b pulse' : status === 'error' ? 'r' : status === 'done' ? 'g' : 'a';
+
+function LoopPanel({ open, onClose, status, iterations, onStop }) {
+    return (
+        <div className={'sa-panel' + (open ? ' open' : '')}>
+            <div className="sa-panel-inner">
+                <div className="sa-head">
+                    <div className="sa-head-row">
+                        <h3>Loop Engineer</h3>
+                        <span className="sa-live">
+                            <span className={'dot ' + loopDotClass(status)} />
+                            {status ? LOOP_STATUS_LABEL[status] || status : 'chưa chạy'}
+                        </span>
+                        <span className="sp" />
+                        {status === 'running' && (
+                            <button className="btn sm" onClick={onStop}>
+                                Dừng
+                            </button>
+                        )}
+                        <button className="sa-close" onClick={onClose} title="Đóng panel">
+                            ✕
+                        </button>
+                    </div>
+                    <div className="sa-head-sub" />
+                </div>
+                <div className="sa-list">
+                    {!iterations.length ? (
+                        <div className="sa-empty">Chưa có iteration nào.</div>
+                    ) : (
+                        iterations.map((it) => <LoopCard key={it.index} it={it} />)
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function LoopCard({ it }) {
+    const [open, setOpen] = useState(it.status === 'running');
+    return (
+        <div className={'sa-card ' + it.status + (open ? ' open' : '')}>
+            <div className="sa-card-head" onClick={() => setOpen((o) => !o)}>
+                <span className={'dot ' + loopDotClass(it.status)} />
+                <span className="sa-card-name">Iteration {it.index}</span>
+                <span className="sp" />
+                <span className="sa-card-time">{it.turns ? `${it.turns} turns` : ''}</span>
+                <svg
+                    className="sa-chev"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                >
+                    <path d="M6 3l5 5-5 5" />
+                </svg>
+            </div>
+            <div className="sa-card-body">
+                <div className="sa-timeline">
+                    {it.blocks.map((b) => (
+                        <div className="ctool" key={b.id}>
+                            {b.kind === 'tool'
+                                ? `🔧 ${b.name}`
+                                : b.kind === 'thinking'
+                                  ? '💭 đang suy luận…'
+                                  : b.text}
+                        </div>
+                    ))}
+                    {it.summary && <div className="sa-final-text">{it.summary}</div>}
+                </div>
+            </div>
         </div>
     );
 }
@@ -463,7 +619,7 @@ function SubagentPanel({
         <div className={'sa-panel' + (open ? ' open' : '')}>
             <div className="sa-panel-inner">
                 <div className="sa-head">
-                    <div className="row1">
+                    <div className="sa-head-row">
                         <h3>Subagent Activity</h3>
                         <span className="sa-live">
                             <span className={'dot ' + (running ? 'b pulse' : 'g')} />
@@ -474,16 +630,22 @@ function SubagentPanel({
                             ✕
                         </button>
                     </div>
-                    <div className="seg">
-                        {['all', 'running', 'done'].map((f) => (
-                            <button
-                                key={f}
-                                className={filter === f ? 'on' : ''}
-                                onClick={() => setFilter(f)}
-                            >
-                                {f === 'all' ? 'Tất cả' : f === 'running' ? 'Đang chạy' : 'Hoàn tất'}
-                            </button>
-                        ))}
+                    <div className="sa-head-sub">
+                        <div className="seg">
+                            {['all', 'running', 'done'].map((f) => (
+                                <button
+                                    key={f}
+                                    className={filter === f ? 'on' : ''}
+                                    onClick={() => setFilter(f)}
+                                >
+                                    {f === 'all'
+                                        ? 'Tất cả'
+                                        : f === 'running'
+                                          ? 'Đang chạy'
+                                          : 'Hoàn tất'}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
                 <div className="sa-list">
@@ -527,7 +689,13 @@ function SubagentCard({ s, onToggle, tlRef }) {
                 <span className="sa-card-name">{s.type}</span>
                 <span className="sp" />
                 <span className="sa-card-time">{fmtDur(Date.now() - s.startedAt)}</span>
-                <svg className="sa-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+                <svg
+                    className="sa-chev"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                >
                     <path d="M6 3l5 5-5 5" />
                 </svg>
             </div>

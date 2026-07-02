@@ -14,7 +14,6 @@ export default function Agent({ data, api, reload }) {
                 maxTurns: d.draft.maxTurns,
                 effort: d.draft.effort,
                 permissionMode: d.draft.permissionMode,
-                concurrency: d.draft.concurrency,
                 disallowedTools: d.draft.disallowedTools,
                 allowedTools: d.draft.allowedTools,
                 systemPromptAppend: d.draft.systemPromptAppend,
@@ -67,12 +66,6 @@ export default function Agent({ data, api, reload }) {
                             options={['default', 'acceptEdits', 'plan', 'bypassPermissions']}
                             value={d.draft.permissionMode}
                             onChange={(v) => d.set('permissionMode', v)}
-                        />
-                    </Field>
-                    <Field label="Concurrency" hint="Giới hạn session chạy đồng thời">
-                        <Num
-                            value={d.draft.concurrency}
-                            onChange={(v) => d.set('concurrency', v)}
                         />
                     </Field>
                 </div>
