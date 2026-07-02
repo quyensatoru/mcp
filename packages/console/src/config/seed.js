@@ -1,8 +1,6 @@
 import { buildDefaults } from './defaults.js';
 import { encrypt } from './crypto.js';
 
-// Idempotent: populate each empty collection from current env/defaults.
-// Never overwrites values an operator has already changed in the DB.
 export async function seedIfEmpty(models, env = process.env) {
     const d = buildDefaults(env);
     const summary = {};

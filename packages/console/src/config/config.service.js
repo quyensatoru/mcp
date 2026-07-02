@@ -18,9 +18,13 @@ function resolveClaudeBin() {
     const candidates = [];
     const pnpmDir = path.join(REPO_ROOT, 'node_modules/.pnpm');
     try {
-        const dir = readdirSync(pnpmDir).find((d) => d.startsWith(`@anthropic-ai+${pkg}@`));
-        if (dir) {
-            candidates.push(path.join(pnpmDir, dir, 'node_modules/@anthropic-ai', pkg, bin));
+        const dirs = readdirSync(pnpmDir)
+            .filter((d) => d.startsWith(`@anthropic-ai+${pkg}@`))
+            .sort();
+
+        const latest = dirs.at(-1);
+        if (latest) {
+            candidates.push(path.join(pnpmDir, latest, 'node_modules/@anthropic-ai', pkg, bin));
         }
     } catch {
         /* no .pnpm dir */
@@ -39,11 +43,6 @@ function resolveClaudeBin() {
 
 const CLAUDE_BIN = resolveClaudeBin();
 
-// Single source of truth for dynamic config. Both @mida/agent (reads) and the
-// console API (reads + writes) use this. Owns a dedicated mongoose connection so
-// it never collides with the host process's default connection. An in-memory
-// cache (TTL + change-stream invalidation) gives the agent near-instant reads
-// and picks up edits from the dashboard without a restart.
 class ConfigService {
     #conn = null;
     #models = null;
@@ -79,7 +78,6 @@ class ConfigService {
         if (!this.#models) throw new Error('ConfigService not connected — call connect(uri) first');
     }
 
-    // ---- cache ----
     #peek(key) {
         const e = this.#cache.get(key);
         if (e && Date.now() - e.ts < this.#ttlMs) return e.data;
@@ -113,7 +111,6 @@ class ConfigService {
         }
     }
 
-    // ---- singletons ----
     async #getSingleton(modelName, cacheKey) {
         this.#ensure();
         const hit = this.#peek(cacheKey);
@@ -159,7 +156,6 @@ class ConfigService {
         return this.#patchSingleton('WorkspaceConfig', 'workspace', patch);
     }
 
-    // ---- mcp servers ----
     async listMcpServers() {
         this.#ensure();
         const hit = this.#peek('mcp');
@@ -183,7 +179,6 @@ class ConfigService {
         this.#bust('mcp');
     }
 
-    // ---- subagents ----
     async listSubagents() {
         this.#ensure();
         const hit = this.#peek('subagents');
@@ -207,7 +202,6 @@ class ConfigService {
         this.#bust('subagents');
     }
 
-    // ---- secrets ----
     async setSecret(key, plain, updatedBy = 'system') {
         this.#ensure();
         const e = encrypt(String(plain));
@@ -241,7 +235,6 @@ class ConfigService {
         return this.#store('secrets', map);
     }
 
-    // ---- builders consumed by the agent (P1) ----
     async buildClaudeBase() {
         const a = await this.getAgentConfig();
         return {
@@ -294,8 +287,6 @@ class ConfigService {
         return out;
     }
 
-    // Compile guardrail deny-command patterns into a PreToolUse hook (covers Bash,
-    // which canUseTool never sees). Returns undefined when nothing to enforce.
     async buildHooks() {
         const g = await this.getGuardrails();
         if (!g?.hooks?.preToolUse || !g.denyCommandPatterns?.length) return undefined;
@@ -337,9 +328,6 @@ class ConfigService {
         };
     }
 
-    // Full Claude Agent SDK `query` options assembled from config. Shared by the
-    // Mattermost agent and the web Chat — the caller supplies cwd/sessionId/canUseTool
-    // and passes the result straight to query({ prompt, options }).
     async buildAgentOptions({ cwd, sessionId, canUseTool } = {}) {
         const [base, mcpServers, agents, hooks] = await Promise.all([
             this.buildClaudeBase(),
@@ -356,7 +344,7 @@ class ConfigService {
                 preset: 'claude_code',
                 append: base.systemPromptAppend,
             },
-            settingSources: base.settingSources,
+            settingSources: ['project', 'user'],
             permissionMode: base.permissionMode,
             ...(sessionId ? { resume: sessionId } : {}),
             mcpServers,

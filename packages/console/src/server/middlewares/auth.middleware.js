@@ -1,4 +1,4 @@
-export function bearerAuth(token) {
+export function AuthMiddleware(token) {
     return (req, res, next) => {
         if (!token) return next();
         const header = req.headers.authorization || '';

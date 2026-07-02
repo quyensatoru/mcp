@@ -10,16 +10,20 @@ import {
     worktreeExists,
     branchExists,
     pruneWorktrees,
-} from './git-worktree.js';
+    fetch,
+    checkoutBranch,
+    pull,
+    git,
+} from './git.js';
 
-// Convert an arbitrary string (e.g. a Mattermost post ID) into a name safe
-// for both filesystem paths and git branch names.
+//format string any to safe for branch name and path example: "session key" -> "session-key"
 function sanitize(key) {
-    return key.replace(/[^a-zA-Z0-9_.-]/g, '-').replace(/^-+|-+$/g, '');
+    return key
+        .replace(/[^a-zA-Z0-9_.-]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
 }
 
-// Git branch used as the starting point for a session's worktrees.
-// The agent may create additional branches from within each worktree.
 function worktreeBranch(sessionKey) {
     return `wt/${sanitize(sessionKey)}`;
 }
@@ -33,12 +37,10 @@ export class WorkspaceManager {
         this.#sessionsDir = sessionsDir;
     }
 
-    // Absolute path to the session-specific workspace directory.
     getWorkDir(sessionKey) {
         return path.join(this.#sessionsDir, sanitize(sessionKey));
     }
 
-    // Returns true when the session directory already exists on disk.
     hasWorkDir(sessionKey) {
         return existsSync(this.getWorkDir(sessionKey));
     }
@@ -67,6 +69,12 @@ export class WorkspaceManager {
                     if (await branchExists(repoDir, branch)) {
                         await addWorktreeExistingBranch(repoDir, worktreePath, branch);
                     } else {
+                        //pull latest changes from remote before creating worktree
+                        const remote = 'origin', mainBranch = 'master';
+                        await fetch(repoDir, remote);
+                        await checkoutBranch(repoDir, mainBranch);
+                        await git(['reset', '--hard', `${remote}/${mainBranch}`], repoDir);
+                        await pull(repoDir, remote, mainBranch);
                         await addWorktree(repoDir, worktreePath, branch);
                     }
                     logger.debug(`[workspace] created worktree: ${repoName} → ${worktreePath}`);

@@ -7,13 +7,11 @@ import { resolveRepo, safeJoin } from '../paths.js';
 const IGNORE = new Set(['.git', 'node_modules', 'dist', '.cache']);
 const MAX_READ = 2 * 1024 * 1024;
 
-// File tree (lazy, per-directory) + read/write within a session worktree.
 export function filesRouter() {
     const r = Router();
     const ah = (fn) => (req, res) =>
         fn(req, res).catch((e) => res.status(400).json({ error: e.message }));
 
-    // GET /tree?session=&repo=&dir=relative  → immediate children of `dir`
     r.get(
         '/tree',
         ah(async (req, res) => {
@@ -33,7 +31,6 @@ export function filesRouter() {
         }),
     );
 
-    // GET /read?session=&repo=&file=relative
     r.get(
         '/read',
         ah(async (req, res) => {
@@ -44,7 +41,6 @@ export function filesRouter() {
         }),
     );
 
-    // PUT /write  { session, repo, file, content }
     r.put(
         '/write',
         ah(async (req, res) => {

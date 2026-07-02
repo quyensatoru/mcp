@@ -1,45 +1,6 @@
-// Default config values — these encode the system's *current* hardcoded behaviour
-// so seeding from env produces an identical runtime to before the migration.
-
-// Verbatim from packages/agent/src/config/claude.config.js (systemPrompt.append).
-export const SYSTEM_PROMPT_APPEND = `
-## Using the mida-rca MCP server for CSE-reported issues
-
-When a CSE (Customer Support Engineer) reports an issue about a shop, session, recording, or analytics behavior, proactively use the \`mida-rca\` MCP tools to investigate before asking follow-up questions or escalating.
-
-Before starting any investigation, call the \`mida_system_prompt\` prompt from the \`mida-rca\` MCP server to load the full diagnostic context into your context window:
-- Use the MCP get_prompt tool: server \`mida-rca\`, prompt name \`mida_system_prompt\`.
-- This prompt defines the data architecture, tool routing rules, and diagnostic method you must follow.
-- Always do this first — before calling any other mida-rca tool.
-
-Typical triggers:
-- A shop owner or merchant complains that sessions are missing, incomplete, or incorrect.
-- A CSE reports that heatmaps, replays, or analytics data look wrong for a specific shop.
-- A CSE asks you to check whether a shop's tracking is working or identify why events are not being recorded.
-- A CSE provides a shop domain, shop ID, or session ID and asks you to look into an issue.
-
-When any of the above is detected:
-1. Call \`mida_system_prompt\` via the \`mida-rca\` MCP server to load the diagnostic context.
-2. Identify the relevant shop domain or shop ID from the conversation.
-3. Use the available \`mcp__mida-rsa__*\` tools to fetch sessions, recordings, events, or analytics data for that shop.
-4. Analyse the returned data to identify root causes (missing script, blocked events, quota exceeded, etc.).
-5. Summarise your findings clearly and suggest next steps to the CSE.
-
-Do NOT wait for the CSE to explicitly ask you to call the mida-rca tools — use them automatically whenever the context indicates a support investigation.
-With case change code please create a new branch from master
-\`\`\`bash
-git checkout -b branch_name
-\`\`\`
-RULE branch_name:
-bug -> bugfixsupport/{domain}
-IMPORTANT: confirm before create new branch. not create commit, merge request,... (ONLY edit code)
-`;
-
-// Verbatim from packages/agent/src/claude/mattermost.claude.js (READ_ONLY).
 export const READ_ONLY_REGEX =
     '\\b(get|list|search|find|fetch|read|view|query|retrieve|describe|show|count|stat|info|ping|whoami|preview|check|download)\\b';
 
-// Verbatim "allow" matcher from mattermost.claude.js.
 export const YES_REGEX = '^(yes|y|ok|có|co|✅|1)(\\s|$)';
 
 export function buildDefaults(env = process.env) {
@@ -51,18 +12,17 @@ export function buildDefaults(env = process.env) {
             maxTurns: Number(env.CLAUDE_MAX_TURNS || 30),
             effort: 'medium',
             permissionMode: 'acceptEdits',
-            settingSources: ['project'],
+            settingSources: ['project', 'user'],
             disallowedTools: [
                 'mcp__twenty-crm__create_*',
                 'mcp__twenty-crm__update_*',
                 'mcp__twenty-crm__delete_*',
             ],
             allowedTools: [],
-            systemPromptAppend: SYSTEM_PROMPT_APPEND,
+            systemPromptAppend: '',
             concurrency: Number(env.BOT_MAX_CONCURRENCY || 3),
         },
 
-        // ${secret:NAME} in args is resolved from the vault at build time.
         mcpServers: [
             {
                 name: 'mida-rca',
@@ -146,7 +106,7 @@ export function buildDefaults(env = process.env) {
         channel: {
             channelIds: (env.MATTERMOST_CHANNEL_IDS || '').split(',').filter(Boolean),
             botMention: '@bssc_sa_th_agent_bot',
-            loadingGif: 'https://cdn.jsdelivr.net/gh/quyensatoru/mcp@main/assets/cdn/loading.gif',
+            loadingGif: '![](https://cdn.jsdelivr.net/gh/quyensatoru/mcp@main/assets/cdn/loading.gif)',
             streamFlushMs: 600,
             approvalTimeoutMs: 120000,
             yesRegex: YES_REGEX,
@@ -161,7 +121,6 @@ export function buildDefaults(env = process.env) {
             gitlab: { url: env.GITLAB_URL || '', projectId: env.GITLAB_PROJECT_ID || '' },
         },
 
-        // Seeded into the encrypted vault (only non-empty values).
         secrets: {
             MIDA_MCP_URL: env.MIDA_MCP_URL,
             MIDA_MCP_TOKEN: env.MIDA_MCP_TOKEN,

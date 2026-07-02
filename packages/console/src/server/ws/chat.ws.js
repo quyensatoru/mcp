@@ -9,8 +9,11 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { logger } from '@mida/logger';
 import { WorkspaceManager } from '@mida/workspace';
-import { configService } from '../config/index.js';
-import { READ_ONLY_REGEX } from '../config/defaults.js';
+import { configService } from '../../config/index.js';
+import { READ_ONLY_REGEX } from '../../config/defaults.js';
+
+let _manager = null;
+let _baseWorkDir = null;
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 
@@ -31,16 +34,18 @@ async function resolveDirs() {
     return { workDir: abs(workDir), sessionsDir: abs(sessionsDir) };
 }
 
-let _manager = null;
-let _baseWorkDir = null;
 async function getWorkspaceManager() {
-    const { workDir, sessionsDir } = await resolveDirs();
-    _baseWorkDir = workDir;
-    if (!_manager) _manager = new WorkspaceManager({ baseWorkDir: workDir, sessionsDir });
+    const { workDir: baseWorkDir, sessionsDir } = await resolveDirs();
+    
+    _baseWorkDir = baseWorkDir;
+
+    if (!_manager) {
+        _manager = new WorkspaceManager({ baseWorkDir, sessionsDir });
+    }
+
     return _manager;
 }
 
-// Parse SDK SessionMessage[] → frontend block array
 function parseMessages(sdkMessages) {
     const blocks = [];
     for (const msg of sdkMessages) {
@@ -82,14 +87,14 @@ export function handleChat(ws) {
         let readOnly = READ_ONLY_REGEX;
         let timeoutMs = 120000;
         try {
-            const [g, ch] = await Promise.all([
+            const [guard, channel] = await Promise.all([
                 configService.getGuardrails(),
                 configService.getChannelConfig(),
             ]);
-            readOnly = g.autoApproveReadOnlyRegex || readOnly;
-            timeoutMs = ch.approvalTimeoutMs || timeoutMs;
-        } catch {
-            /* defaults */
+            readOnly = guard.autoApproveReadOnlyRegex || readOnly;
+            timeoutMs = channel.approvalTimeoutMs || timeoutMs;
+        } catch (e){
+            logger.error(e);
         }
         const RE = new RegExp(readOnly, 'i');
 
@@ -117,7 +122,7 @@ export function handleChat(ws) {
     };
 
     const run = async (text) => {
-        if (running) return send(ws, { type: 'error', message: 'Agent đang bận' });
+        if (running) return send(ws, { type: 'error', message: 'The agent is busy.' });
         running = true;
         try {
             if (!cwd) {
@@ -137,7 +142,7 @@ export function handleChat(ws) {
 
             const canUseTool = await buildCanUseTool();
             const options = await configService.buildAgentOptions({
-                cwd: path.join(cwd, '.claude'),
+                cwd,
                 sessionId: sessionId || undefined,
                 canUseTool,
             });
@@ -203,7 +208,7 @@ export function handleChat(ws) {
             }
         } else if (msg.type === 'resume' && msg.sessionId) {
             (async () => {
-                const [info, sdkMessages] = await Promise.all([
+                const [info, message] = await Promise.all([
                     getSessionInfo(msg.sessionId).catch(() => null),
                     getSessionMessages(msg.sessionId).catch(() => []),
                 ]);
@@ -213,7 +218,7 @@ export function handleChat(ws) {
                     const basename = path.basename(info.cwd);
                     send(ws, { type: 'workspace', key: basename, dir: cwd });
                 }
-                send(ws, { type: 'history', messages: parseMessages(sdkMessages) });
+                send(ws, { type: 'history', messages: parseMessages(message) });
             })().catch((e) => send(ws, { type: 'error', message: e.message }));
         } else if (msg.type === 'new_chat') {
             sessionId = '';

@@ -3,9 +3,30 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-async function git(args, cwd) {
+export async function git(args, cwd) {
     const { stdout } = await execFileAsync('git', args, { cwd });
     return stdout.trim();
+}
+
+export async function fetch(repoDir, remote = 'origin') {
+    await git(['fetch', remote], repoDir);
+}
+
+export async function checkoutBranch(repoDir, branch) {
+    await git(['checkout', branch], repoDir);
+}
+
+export async function getStatus(repoDir) {
+    const out = await git(['status', '--porcelain'], repoDir);
+    return out
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => ({ x: line[0], y: line[1], path: line.slice(3) }));
+}
+
+
+export async function pull(repoDir, remote = 'origin', branch = 'main') {
+    await git(['pull', remote, branch], repoDir);
 }
 
 export async function getCurrentBranch(repoDir) {
@@ -21,34 +42,27 @@ export async function branchExists(repoDir, branch) {
     }
 }
 
-// Returns true if a worktree is checked out at the given absolute path.
 export async function worktreeExists(repoDir, worktreePath) {
     const list = await git(['worktree', 'list', '--porcelain'], repoDir);
-    // Each worktree block starts with "worktree <path>"
     return list.split('\n').some((line) => line === `worktree ${worktreePath}`);
 }
 
-// Create a new branch from HEAD and add it as a worktree at worktreePath.
 export async function addWorktree(repoDir, worktreePath, branch) {
     await git(['worktree', 'add', '-b', branch, worktreePath, 'HEAD'], repoDir);
 }
 
-// Add a worktree for an already-existing branch (resume scenario).
 export async function addWorktreeExistingBranch(repoDir, worktreePath, branch) {
     await git(['worktree', 'add', worktreePath, branch], repoDir);
 }
 
-// Force-remove the worktree at worktreePath. Safe to call on a missing path.
 export async function removeWorktree(repoDir, worktreePath) {
     await git(['worktree', 'remove', '--force', worktreePath], repoDir);
 }
 
-// Prune stale worktree admin files (safe to call any time).
 export async function pruneWorktrees(repoDir) {
     await git(['worktree', 'prune'], repoDir);
 }
 
-// Force-delete a local branch. No-op if branch doesn't exist.
 export async function deleteBranch(repoDir, branch) {
     await git(['branch', '-D', branch], repoDir);
 }

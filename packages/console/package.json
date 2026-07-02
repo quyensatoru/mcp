@@ -20,7 +20,7 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "@anthropic-ai/claude-agent-sdk": "^0.3.185",
+        "@anthropic-ai/claude-agent-sdk": "^0.3.196",
         "@mida/logger": "workspace:*",
         "@mida/workspace": "workspace:*",
         "dotenv": "^17.4.2",

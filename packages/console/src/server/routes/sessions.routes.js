@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { readdirSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { sessionsRoot } from '../paths.js';
-import { currentBranch, status } from '../git.js';
+import { getCurrentBranch, getStatus  } from "@mida/workspace"
 
 export function sessionsRouter() {
     const route = Router();
@@ -30,8 +30,8 @@ export function sessionsRouter() {
                 for (const repo of repos) {
                     const cwd = path.join(sdir, repo);
                     const [branch, st] = await Promise.all([
-                        currentBranch(cwd),
-                        status(cwd).catch(() => []),
+                        getCurrentBranch(cwd),
+                        getStatus(cwd).catch(() => []),
                     ]);
                     repoInfo.push({ repo, branch, changes: st.length });
                 }

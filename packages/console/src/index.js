@@ -4,8 +4,7 @@ import { env } from './server/env.js';
 import { logger } from '@mida/logger';
 import { configService } from './config/index.js';
 import { createApp } from './server/app.js';
-import { handleTerminal } from './server/ws/terminal.ws.js';
-import { handleChat } from './server/chat.service.js';
+import { handleTerminal, handleChat } from './server/ws/index.js';
 
 const bootstrap = async () => {
     if (!env.MONGO_URI) {

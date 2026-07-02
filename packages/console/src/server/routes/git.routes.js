@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { resolveRepo } from '../paths.js';
-import { git, status, currentBranch } from '../git.js';
+import { git, getCurrentBranch, getStatus } from "@mida/workspace"
 import { logger } from '@mida/logger';
+import { WorkspaceManager } from '@mida/workspace'
 
 export function gitRouter() {
     const route = Router();
@@ -14,7 +15,7 @@ export function gitRouter() {
             const { session, repo } = req.query;
             const cwd = await resolveRepo(session, repo);
 
-            const [branch, files] = await Promise.all([currentBranch(cwd), status(cwd)]);
+            const [branch, files] = await Promise.all([getCurrentBranch(cwd), getStatus(cwd)]);
 
             res.json({ branch, files });
         }),

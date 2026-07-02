@@ -3,7 +3,7 @@ import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { logger } from '@mida/logger';
-import { bearerAuth } from './auth.js';
+import { AuthMiddleware } from './middlewares/auth.middleware.js';
 import { configRouter } from './routes/config.routes.js';
 import { sessionsRouter } from './routes/sessions.routes.js';
 import { filesRouter } from './routes/files.routes.js';
@@ -19,14 +19,12 @@ export function createApp(configService, { token } = {}) {
 
     app.get('/api/health', (_req, res) => res.json({ ok: true, ready: configService.isReady() }));
 
-    const auth = bearerAuth(token);
-    app.use('/api/config', auth, configRouter(configService));
-    app.use('/api/sessions', auth, sessionsRouter());
-    app.use('/api/chat/sessions', auth, chatSessionsRouter());
-    app.use('/api/files', auth, filesRouter());
-    app.use('/api/git', auth, gitRouter());
+    app.use('/api/config', AuthMiddleware(token), configRouter(configService));
+    app.use('/api/sessions', AuthMiddleware(token), sessionsRouter());
+    app.use('/api/chat/sessions', AuthMiddleware(token), chatSessionsRouter());
+    app.use('/api/files', AuthMiddleware(token), filesRouter());
+    app.use('/api/git', AuthMiddleware(token), gitRouter());
 
-    // Serve the built dashboard + SPA fallback for client-side routes.
     if (existsSync(WEB_DIST)) {
         app.use(express.static(WEB_DIST));
         app.get(/^(?!\/api).*/, (_req, res) => res.sendFile(path.join(WEB_DIST, 'index.html')));

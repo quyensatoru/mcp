@@ -1,13 +1,10 @@
 import crypto from 'node:crypto';
 
-// Secrets are encrypted at rest with AES-256-GCM when CONSOLE_MASTER_KEY is set.
-// Without a master key (dev), values are stored in plain text and flagged encrypted:false.
 const ALGO = 'aes-256-gcm';
 
 function getKey() {
     const raw = process.env.CONSOLE_MASTER_KEY;
     if (!raw) return null;
-    // Accept any passphrase; derive a stable 32-byte key.
     return crypto.createHash('sha256').update(raw).digest();
 }
 
@@ -28,7 +25,6 @@ export function decrypt(stored) {
 
     const key = getKey();
     if (!key) {
-        // Master key was removed after encrypting — cannot recover.
         return '';
     }
 
