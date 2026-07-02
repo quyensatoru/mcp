@@ -11,6 +11,12 @@ const EXAMPLES = [
     'Replay render lỗi ở gadgethub',
 ];
 
+function fmtDur(ms) {
+    const s = Math.floor(ms / 1000);
+    if (s < 60) return `${s}s`;
+    return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s`;
+}
+
 function fmtTime(ts) {
     if (!ts) return '';
     const d = new Date(ts);
@@ -33,9 +39,15 @@ export default function Chat({ onNavigateToWorktree }) {
     const [activeSessionId, setActiveSessionId] = useState(null);
     const [loadingSessions, setLoadingSessions] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [subagents, setSubagents] = useState([]);
+    const [saOpen, setSaOpen] = useState(false);
+    const [saFilter, setSaFilter] = useState('all');
+    const [saAutoScroll, setSaAutoScroll] = useState(true);
+    const [, setTick] = useState(0);
     const wsRef = useRef(null);
     const msgsRef = useRef(null);
     const taRef = useRef(null);
+    const saRefs = useRef({});
 
     const resizeTa = (el) => {
         el.style.height = 'auto';
@@ -80,6 +92,37 @@ export default function Chat({ onNavigateToWorktree }) {
                 case 'thinking':
                     add({ kind: 'thinking' });
                     break;
+                case 'subagent':
+                    setSaOpen(true);
+                    setSubagents((list) => {
+                        if (m.phase === 'start') {
+                            if (list.some((s) => s.id === m.agentId)) return list;
+                            return [
+                                {
+                                    id: m.agentId,
+                                    type: m.agentType,
+                                    status: 'running',
+                                    tools: [],
+                                    text: '',
+                                    startedAt: Date.now(),
+                                    open: true,
+                                },
+                                ...list,
+                            ];
+                        }
+                        return list.map((s) => {
+                            if (s.id !== m.agentId) return s;
+                            if (m.phase === 'tool')
+                                return {
+                                    ...s,
+                                    tools: [...s.tools, { name: m.toolName, input: m.toolInput }],
+                                };
+                            if (m.phase === 'stop')
+                                return { ...s, status: 'done', text: m.text || '' };
+                            return s;
+                        });
+                    });
+                    break;
                 case 'approval':
                     add({
                         kind: 'approval',
@@ -106,6 +149,7 @@ export default function Chat({ onNavigateToWorktree }) {
                 case 'history':
                     // Restore blocks from session history
                     setBlocks((m.messages ?? []).map((msg) => ({ id: ++uid, ...msg })));
+                    setSubagents([]);
                     break;
                 case 'done':
                     setBusy(false);
@@ -121,6 +165,25 @@ export default function Chat({ onNavigateToWorktree }) {
     useEffect(() => {
         if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
     }, [blocks]);
+
+    useEffect(() => {
+        if (!subagents.some((s) => s.status === 'running')) return;
+        const t = setInterval(() => setTick((x) => x + 1), 1000);
+        return () => clearInterval(t);
+    }, [subagents]);
+
+    useEffect(() => {
+        if (!saAutoScroll) return;
+        for (const s of subagents) {
+            const el = saRefs.current[s.id];
+            if (el && s.open) el.scrollTop = el.scrollHeight;
+        }
+    }, [subagents, saAutoScroll]);
+
+    const toggleSaCard = (id) =>
+        setSubagents((list) => list.map((s) => (s.id === id ? { ...s, open: !s.open } : s)));
+    const clearFinishedSa = () => setSubagents((list) => list.filter((s) => s.status !== 'done'));
+    const runningSaCount = subagents.filter((s) => s.status === 'running').length;
 
     const send = () => {
         if (!text.trim() || wsRef.current?.readyState !== 1 || busy) return;
@@ -146,6 +209,7 @@ export default function Chat({ onNavigateToWorktree }) {
         setBlocks([]);
         setWorksp(null);
         setActiveSessionId(null);
+        setSubagents([]);
         wsRef.current?.send(JSON.stringify({ type: 'new_chat' }));
     };
 
@@ -275,6 +339,18 @@ export default function Chat({ onNavigateToWorktree }) {
 
             {/* ── Main chat area ── */}
             <div className="chat-main">
+                <div className="chat-toolbar">
+                    <span className="sp" />
+                    <button
+                        className={'sa-toggle' + (saOpen ? ' active' : '')}
+                        onClick={() => setSaOpen((o) => !o)}
+                    >
+                        🧵 Subagents
+                        <span className={'sa-cnt' + (runningSaCount ? '' : ' zero')}>
+                            {runningSaCount}
+                        </span>
+                    </button>
+                </div>
                 {worksp && (
                     <div className="chat-ws">
                         <span className={'dot ' + (worksp.key ? 'g' : 'a')} />
@@ -350,6 +426,123 @@ export default function Chat({ onNavigateToWorktree }) {
                             ↑
                         </button>
                     </div>
+                </div>
+            </div>
+
+            <SubagentPanel
+                open={saOpen}
+                onClose={() => setSaOpen(false)}
+                subagents={subagents}
+                filter={saFilter}
+                setFilter={setSaFilter}
+                onToggleCard={toggleSaCard}
+                autoScroll={saAutoScroll}
+                setAutoScroll={setSaAutoScroll}
+                onClear={clearFinishedSa}
+                tlRefs={saRefs}
+            />
+        </div>
+    );
+}
+
+function SubagentPanel({
+    open,
+    onClose,
+    subagents,
+    filter,
+    setFilter,
+    onToggleCard,
+    autoScroll,
+    setAutoScroll,
+    onClear,
+    tlRefs,
+}) {
+    const items = subagents.filter((s) => filter === 'all' || s.status === filter);
+    const running = subagents.filter((s) => s.status === 'running').length;
+    return (
+        <div className={'sa-panel' + (open ? ' open' : '')}>
+            <div className="sa-panel-inner">
+                <div className="sa-head">
+                    <div className="row1">
+                        <h3>Subagent Activity</h3>
+                        <span className="sa-live">
+                            <span className={'dot ' + (running ? 'b pulse' : 'g')} />
+                            {running ? `${running} đang chạy` : 'Không có tiến trình'}
+                        </span>
+                        <span className="sp" />
+                        <button className="sa-close" onClick={onClose} title="Đóng panel">
+                            ✕
+                        </button>
+                    </div>
+                    <div className="seg">
+                        {['all', 'running', 'done'].map((f) => (
+                            <button
+                                key={f}
+                                className={filter === f ? 'on' : ''}
+                                onClick={() => setFilter(f)}
+                            >
+                                {f === 'all' ? 'Tất cả' : f === 'running' ? 'Đang chạy' : 'Hoàn tất'}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div className="sa-list">
+                    {!items.length ? (
+                        <div className="sa-empty">Chưa có subagent nào được khởi chạy.</div>
+                    ) : (
+                        items.map((s) => (
+                            <SubagentCard
+                                key={s.id}
+                                s={s}
+                                onToggle={() => onToggleCard(s.id)}
+                                tlRef={(el) => {
+                                    tlRefs.current[s.id] = el;
+                                }}
+                            />
+                        ))
+                    )}
+                </div>
+                <div className="sa-foot">
+                    <div className="sa-autoscroll">
+                        <button
+                            className={'tog' + (autoScroll ? ' on' : '')}
+                            onClick={() => setAutoScroll((a) => !a)}
+                        />
+                        Tự động cuộn
+                    </div>
+                    <button className="btn sm" onClick={onClear}>
+                        Xoá đã xong
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function SubagentCard({ s, onToggle, tlRef }) {
+    return (
+        <div className={'sa-card ' + s.status + (s.open ? ' open' : '')}>
+            <div className="sa-card-head" onClick={onToggle}>
+                <span className={'dot ' + (s.status === 'running' ? 'b pulse' : 'g')} />
+                <span className="sa-card-name">{s.type}</span>
+                <span className="sp" />
+                <span className="sa-card-time">{fmtDur(Date.now() - s.startedAt)}</span>
+                <svg className="sa-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <path d="M6 3l5 5-5 5" />
+                </svg>
+            </div>
+            <div className="sa-card-meta">
+                <span className="chip">{s.tools.length} tool calls</span>
+            </div>
+            <div className="sa-card-body">
+                <div className="sa-timeline" ref={tlRef}>
+                    {s.tools.map((t, i) => (
+                        <div className="ctool" key={i}>
+                            🔧 <b>{t.name}</b>
+                            {t.input ? `\n${JSON.stringify(t.input, null, 2).slice(0, 300)}` : ''}
+                        </div>
+                    ))}
+                    {s.status === 'done' && s.text && <div className="sa-final-text">{s.text}</div>}
                 </div>
             </div>
         </div>

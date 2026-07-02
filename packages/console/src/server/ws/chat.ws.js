@@ -145,6 +145,7 @@ export function handleChat(ws) {
                 cwd,
                 sessionId: sessionId || undefined,
                 canUseTool,
+                onSubagentEvent: (evt) => send(ws, { type: 'subagent', ...evt }),
             });
             const stream = query({ prompt: text, options });
 
@@ -169,10 +170,19 @@ export function handleChat(ws) {
                 }
                 if (event.type !== 'assistant') continue;
                 for (const block of event.message?.content ?? []) {
-                    if (block.type === 'text') send(ws, { type: 'text', text: block.text });
-                    else if (block.type === 'tool_use')
-                        send(ws, { type: 'tool', name: block.name, input: block.input });
-                    else if (block.type === 'thinking') send(ws, { type: 'thinking' });
+                    switch (block.type) {
+                        case 'text':
+                            send(ws, { type: 'text', text: block.text });
+                            break;
+                        case 'tool_use':
+                            send(ws, { type: 'tool', name: block.name, input: block.input });
+                            break;
+                        case 'thinking':
+                            send(ws, { type: 'thinking' });
+                            break;
+                        default:
+                            logger.warn('[chat] unknown block type: ' + block.type);
+                    }
                 }
             }
             send(ws, { type: 'done' });

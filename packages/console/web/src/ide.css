@@ -829,6 +829,228 @@
     opacity: 0.5;
 }
 
+/* ===== Subagent panel ===== */
+.chat-toolbar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    height: 42px;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--line);
+    background: #fff;
+}
+.chat-toolbar .sp,
+.sa-head .row1 .sp,
+.sa-card-head .sp {
+    flex: 1;
+}
+.sa-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 5px 9px 5px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--text);
+    cursor: pointer;
+}
+.sa-toggle:hover {
+    border-color: #cdd5e2;
+}
+.sa-toggle.active {
+    border-color: #bcd0f7;
+    background: var(--accent-wash);
+    color: var(--accent-ink);
+}
+.sa-cnt {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--ink);
+    color: #fff;
+    padding: 1px 7px;
+    border-radius: 20px;
+    min-width: 16px;
+    text-align: center;
+}
+.sa-toggle.active .sa-cnt {
+    background: var(--accent);
+}
+.sa-cnt.zero {
+    background: #d9dde6;
+    color: #6b7284;
+}
+.dot.pulse {
+    animation: sa-pulse 1.6s ease-in-out infinite;
+}
+@keyframes sa-pulse {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.45;
+        transform: scale(0.78);
+    }
+}
+.sa-panel {
+    width: 0;
+    flex: none;
+    overflow: hidden;
+    background: #fff;
+    border-left: 1px solid var(--line);
+    transition: width 0.2s ease;
+}
+.sa-panel.open {
+    width: 360px;
+}
+.sa-panel-inner {
+    width: 360px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+.sa-head {
+    flex: none;
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--line);
+}
+.sa-head .row1 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 9px;
+}
+.sa-head h3 {
+    font-size: 14px;
+    font-weight: 650;
+    margin: 0;
+}
+.sa-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+}
+.sa-close {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 0;
+    background: transparent;
+    color: var(--faint);
+    cursor: pointer;
+}
+.sa-close:hover {
+    background: var(--paper);
+    color: var(--text);
+}
+.sa-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+.sa-empty {
+    padding: 26px 10px;
+    text-align: center;
+    color: var(--faint);
+    font-size: 12.5px;
+}
+.sa-card {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line);
+    border-radius: 9px;
+    overflow: hidden;
+}
+.sa-card.running {
+    border-left-color: var(--accent);
+}
+.sa-card.done {
+    border-left-color: var(--ok);
+}
+.sa-card-head {
+    padding: 9px 10px 7px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+.sa-card-name {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    font-weight: 650;
+}
+.sa-card-time {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+.sa-chev {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    color: var(--faint);
+    transition: transform 0.18s;
+}
+.sa-card.open .sa-chev {
+    transform: rotate(90deg);
+}
+.sa-card-meta {
+    padding: 0 10px 9px;
+}
+.sa-card-body {
+    border-top: 1px solid var(--line-2);
+    background: var(--paper);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease;
+}
+.sa-card.open .sa-card-body {
+    max-height: 260px;
+    overflow-y: auto;
+}
+.sa-timeline {
+    padding: 9px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.sa-timeline .ctool {
+    margin: 0;
+    font-size: 11.5px;
+}
+.sa-final-text {
+    font-size: 12.5px;
+    color: var(--text);
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+.sa-foot {
+    flex: none;
+    padding: 9px 12px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.sa-autoscroll {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
 /* ===== Empty state ===== */
 .empty {
     height: 100%;

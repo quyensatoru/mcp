@@ -128,11 +128,14 @@ export function registerSessionTools(server) {
                 'Full detail of one session by id: visitor info, pageviews, counts of rrweb events & behaviors, plus pipeline flags. Use to diagnose "recording missing/broken" — the flags show where the Session → PageView → Event chain breaks.',
             inputSchema: z.object({
                 domain: z.string().describe('Shopify domain'),
-                sessionId: z.string().optional().describe('Session ObjectId'),
+                sessionId: z.string().optional().describe('Session Mongo ObjectId'),
             }),
         },
         wrap('api_get_session_detail', async ({ domain, sessionId }) => {
             if (!sessionId) return errorContent('Provide sessionId.');
+            if (!isValidObjectId(sessionId)) {
+                return errorContent('Invalid sessionId format');
+            }
             const proxy = await resolveProxy(domain);
             const shopId = await ShopService.idByDomain(proxy, domain);
             if (!shopId) {
@@ -256,22 +259,21 @@ export function registerSessionTools(server) {
                 'Find pages by title or address, with heatmap-enabled flag. Use to locate a page id before querying heatmaps, or to check which pages have heatmap tracking on.',
             inputSchema: z.object({
                 domain: z.string().describe('Shopify domain'),
-                q: z.string().optional().describe('Keyword matched against page title or address'),
+                address: z.string().url().optional().describe('Keyword matched against page address'),
                 limit: z.number().int().min(1).max(100).default(20).describe('Max pages to return'),
             }),
         },
-        wrap('page_list', async ({ domain, q, limit }) => {
+        wrap('page_list', async ({ domain, address, limit }) => {
             const proxy = await resolveProxy(domain);
             const shopId = await ShopService.idByDomain(proxy, domain);
             if (!shopId) return errorContent(`Shop not found: ${domain}`);
 
             const filter = { shop: shopId };
-            if (q) {
-                const rx = new RegExp(escapeRegex(q), 'i');
-                filter.$or = [{ title: rx }, { address: rx }];
+            if (address) {
+                filter.address = address
             }
             const pages = await withCache(
-                cacheKey('page_list', { proxy, shopId, q, limit }),
+                cacheKey('page_list', { proxy, shopId, address, limit }),
                 TTL,
                 () => SessionService.pages(proxy, filter, limit),
             );

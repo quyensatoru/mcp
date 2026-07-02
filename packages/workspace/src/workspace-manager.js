@@ -1,6 +1,9 @@
 import path from 'node:path';
-import { mkdirSync, existsSync, readdirSync, statSync, rmSync } from 'node:fs';
+import os from 'node:os';
+import { mkdirSync, existsSync, readdirSync, statSync, rmSync, copyFileSync } from 'node:fs';
 import { logger } from '@mida/logger';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { discoverRepos } from './repo-discovery.js';
 import {
     addWorktree,
@@ -15,6 +18,8 @@ import {
     pull,
     git,
 } from './git.js';
+
+const execFileAsync = promisify(execFile);
 
 //format string any to safe for branch name and path example: "session key" -> "session-key"
 function sanitize(key) {
@@ -43,6 +48,24 @@ export class WorkspaceManager {
 
     hasWorkDir(sessionKey) {
         return existsSync(this.getWorkDir(sessionKey));
+    }
+
+    setupPlugin(sessionKey) {
+        const sessionDir = this.getWorkDir(sessionKey);
+        const claudeDir = path.join(sessionDir, '.claude');
+        const targetFile = path.join(claudeDir, 'settings.json');
+        const sourceFile = path.join(
+            os.homedir(),
+            '.claude',
+            'settings.json',
+        );
+
+        mkdirSync(claudeDir, { recursive: true });
+
+        if (existsSync(targetFile) && statSync(targetFile).isDirectory()) {
+            rmSync(targetFile, { recursive: true, force: true });
+        }
+        copyFileSync(sourceFile, targetFile);
     }
 
     // Create a worktree for every repo in baseWorkDir, all under a single
@@ -86,6 +109,18 @@ export class WorkspaceManager {
                 }
             }),
         );
+
+        this.setupPlugin(sessionKey);
+        try {
+            const { stdout, stderr } = await execFileAsync('codegraph', ['init'], {
+                cwd: sessionDir,
+            });
+            logger.debug(`[workspace] created active plugin claude and init codegraph: ${sessionDir}`);
+            console.log(stdout);
+            console.error(stderr);
+        } catch (e) {
+            console.error(e);
+        }
 
         return sessionDir;
     }

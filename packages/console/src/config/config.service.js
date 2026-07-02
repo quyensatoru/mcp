@@ -287,53 +287,106 @@ class ConfigService {
         return out;
     }
 
-    async buildHooks() {
+    async buildHooks(onSubagentEvent) {
         const g = await this.getGuardrails();
-        if (!g?.hooks?.preToolUse || !g.denyCommandPatterns?.length) return undefined;
+        const hooks = {};
 
-        const regexes = g.denyCommandPatterns
-            .map((p) => {
-                try {
-                    return new RegExp(p);
-                } catch {
-                    return null;
-                }
-            })
-            .filter(Boolean);
-        if (!regexes.length) return undefined;
+        if (g?.hooks?.preToolUse && g.denyCommandPatterns?.length) {
+            const regexes = g.denyCommandPatterns
+                .map((p) => {
+                    try {
+                        return new RegExp(p);
+                    } catch {
+                        return null;
+                    }
+                })
+                .filter(Boolean);
+            if (regexes.length) {
+                hooks.PreToolUse = [
+                    {
+                        hooks: [
+                            async (input) => {
+                                if (input.tool_name === 'Bash') {
+                                    const cmd = input.tool_input?.command ?? '';
+                                    const hit = regexes.find((re) => re.test(cmd));
+                                    if (hit) {
+                                        return {
+                                            hookSpecificOutput: {
+                                                hookEventName: 'PreToolUse',
+                                                permissionDecision: 'deny',
+                                                permissionDecisionReason: `Blocked by guardrail: /${hit.source}/`,
+                                            },
+                                        };
+                                    }
+                                }
+                                return { continue: true };
+                            },
+                        ],
+                    },
+                ];
+            }
+        }
 
-        return {
-            PreToolUse: [
+        if (onSubagentEvent) {
+            hooks.SubagentStart = [
                 {
                     hooks: [
                         async (input) => {
-                            if (input.tool_name === 'Bash') {
-                                const cmd = input.tool_input?.command ?? '';
-                                const hit = regexes.find((re) => re.test(cmd));
-                                if (hit) {
-                                    return {
-                                        hookSpecificOutput: {
-                                            hookEventName: 'PreToolUse',
-                                            permissionDecision: 'deny',
-                                            permissionDecisionReason: `Blocked by guardrail: /${hit.source}/`,
-                                        },
-                                    };
-                                }
+                            onSubagentEvent({
+                                phase: 'start',
+                                agentId: input.agent_id,
+                                agentType: input.agent_type,
+                            });
+                            return { continue: true };
+                        },
+                    ],
+                },
+            ];
+            hooks.SubagentStop = [
+                {
+                    hooks: [
+                        async (input) => {
+                            onSubagentEvent({
+                                phase: 'stop',
+                                agentId: input.agent_id,
+                                agentType: input.agent_type,
+                                text: input.last_assistant_message,
+                            });
+                            return { continue: true };
+                        },
+                    ],
+                },
+            ];
+            hooks.PreToolUse = [
+                ...(hooks.PreToolUse || []),
+                {
+                    hooks: [
+                        async (input) => {
+                            if (input.agent_id) {
+                                onSubagentEvent({
+                                    phase: 'tool',
+                                    agentId: input.agent_id,
+                                    agentType: input.agent_type,
+                                    toolName: input.tool_name,
+                                    toolInput: input.tool_input,
+                                });
                             }
                             return { continue: true };
                         },
                     ],
                 },
-            ],
-        };
+            ];
+        }
+
+        return Object.keys(hooks).length ? hooks : undefined;
     }
 
-    async buildAgentOptions({ cwd, sessionId, canUseTool } = {}) {
+    async buildAgentOptions({ cwd, sessionId, canUseTool, onSubagentEvent } = {}) {
         const [base, mcpServers, agents, hooks] = await Promise.all([
             this.buildClaudeBase(),
             this.buildMcpServers(),
             this.buildAgents(),
-            this.buildHooks(),
+            this.buildHooks(onSubagentEvent),
         ]);
         return {
             ...(CLAUDE_BIN ? { pathToClaudeCodeExecutable: CLAUDE_BIN } : {}),
