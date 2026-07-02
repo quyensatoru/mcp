@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { resolveRepo } from '../paths.js';
-import { git, getCurrentBranch, getStatus } from "@mida/workspace"
+import { git, getCurrentBranch, getStatus } from '@mida/workspace';
 import { logger } from '@mida/logger';
-import { WorkspaceManager } from '@mida/workspace'
+import { WorkspaceManager } from '@mida/workspace';
 
 export function gitRouter() {
     const route = Router();

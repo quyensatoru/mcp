@@ -24,7 +24,6 @@ export async function getStatus(repoDir) {
         .map((line) => ({ x: line[0], y: line[1], path: line.slice(3) }));
 }
 
-
 export async function pull(repoDir, remote = 'origin', branch = 'main') {
     await git(['pull', remote, branch], repoDir);
 }

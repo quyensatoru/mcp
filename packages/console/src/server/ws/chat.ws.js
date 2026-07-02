@@ -36,7 +36,7 @@ async function resolveDirs() {
 
 async function getWorkspaceManager() {
     const { workDir: baseWorkDir, sessionsDir } = await resolveDirs();
-    
+
     _baseWorkDir = baseWorkDir;
 
     if (!_manager) {
@@ -93,7 +93,7 @@ export function handleChat(ws) {
             ]);
             readOnly = guard.autoApproveReadOnlyRegex || readOnly;
             timeoutMs = channel.approvalTimeoutMs || timeoutMs;
-        } catch (e){
+        } catch (e) {
             logger.error(e);
         }
         const RE = new RegExp(readOnly, 'i');

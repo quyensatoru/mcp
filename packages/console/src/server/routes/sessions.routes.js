@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { readdirSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { sessionsRoot } from '../paths.js';
-import { getCurrentBranch, getStatus  } from "@mida/workspace"
+import { getCurrentBranch, getStatus } from '@mida/workspace';
 
 export function sessionsRouter() {
     const route = Router();

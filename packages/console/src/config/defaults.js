@@ -106,7 +106,8 @@ export function buildDefaults(env = process.env) {
         channel: {
             channelIds: (env.MATTERMOST_CHANNEL_IDS || '').split(',').filter(Boolean),
             botMention: '@bssc_sa_th_agent_bot',
-            loadingGif: '![](https://cdn.jsdelivr.net/gh/quyensatoru/mcp@main/assets/cdn/loading.gif)',
+            loadingGif:
+                '![](https://cdn.jsdelivr.net/gh/quyensatoru/mcp@main/assets/cdn/loading.gif)',
             streamFlushMs: 600,
             approvalTimeoutMs: 120000,
             yesRegex: YES_REGEX,

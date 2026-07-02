@@ -70,7 +70,8 @@ export class WorkspaceManager {
                         await addWorktreeExistingBranch(repoDir, worktreePath, branch);
                     } else {
                         //pull latest changes from remote before creating worktree
-                        const remote = 'origin', mainBranch = 'master';
+                        const remote = 'origin',
+                            mainBranch = 'master';
                         await fetch(repoDir, remote);
                         await checkoutBranch(repoDir, mainBranch);
                         await git(['reset', '--hard', `${remote}/${mainBranch}`], repoDir);
