@@ -344,7 +344,7 @@ class ConfigService {
                 preset: 'claude_code',
                 append: base.systemPromptAppend,
             },
-            settingSources: ['project', 'user'],
+            settingSources: base.settingSources,
             permissionMode: base.permissionMode,
             ...(sessionId ? { resume: sessionId } : {}),
             mcpServers,
