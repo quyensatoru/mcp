@@ -196,44 +196,8 @@ function buildDenyHook(regexes) {
     };
 }
 
-function buildSubagentEventHooks(onSubagentEvent, existingPreToolUse) {
-    const onStart = async (input) => {
-        onSubagentEvent({ phase: 'start', agentId: input.agent_id, agentType: input.agent_type });
-        return { continue: true };
-    };
-    const onStop = async (input) => {
-        onSubagentEvent({
-            phase: 'stop',
-            agentId: input.agent_id,
-            agentType: input.agent_type,
-            text: input.last_assistant_message,
-        });
-        return { continue: true };
-    };
-    const onTool = async (input) => {
-        if (!input.agent_id) return { continue: true };
-
-        onSubagentEvent({
-            phase: 'tool',
-            agentId: input.agent_id,
-            agentType: input.agent_type,
-            toolName: input.tool_name,
-            toolInput: input.tool_input,
-        });
-        return { continue: true };
-    };
-
-    return {
-        SubagentStart: [{ hooks: [onStart] }],
-        SubagentStop: [{ hooks: [onStop] }],
-        PreToolUse: [...(existingPreToolUse || []), { hooks: [onTool] }],
-    };
-}
-
-async function buildHooks(onSubagentEvent) {
+async function buildHooks() {
     const g = await getGuardrails();
-    const hooks = {};
-
     const patterns = g?.hooks?.preToolUse ? g.denyCommandPatterns : [];
     const regexes = (patterns || [])
         .map((p) => {
@@ -245,23 +209,21 @@ async function buildHooks(onSubagentEvent) {
         })
         .filter(Boolean);
 
-    if (regexes.length) {
-        hooks.PreToolUse = [{ hooks: [buildDenyHook(regexes)] }];
-    }
-
-    if (onSubagentEvent) {
-        Object.assign(hooks, buildSubagentEventHooks(onSubagentEvent, hooks.PreToolUse));
-    }
-
-    return Object.keys(hooks).length ? hooks : undefined;
+    if (!regexes.length) return undefined;
+    return { PreToolUse: [{ hooks: [buildDenyHook(regexes)] }] };
 }
 
-async function buildAgentOptions({ cwd, sessionId, canUseTool, onSubagentEvent } = {}) {
+// forwardSubagentText streams a subagent's own text/thinking/tool_use blocks
+// into the query() output (tagged with parent_tool_use_id) instead of only a
+// tool-call heartbeat — lets callers render a live nested transcript the same
+// way they render the main thread. Opt-in: only the console chat UI has a
+// panel for it today.
+async function buildAgentOptions({ cwd, sessionId, canUseTool, forwardSubagentText } = {}) {
     const [base, mcpServers, agents, hooks] = await Promise.all([
         buildClaudeBase(),
         buildMcpServers(),
         buildAgents(),
-        buildHooks(onSubagentEvent),
+        buildHooks(),
     ]);
 
     return {
@@ -275,6 +237,7 @@ async function buildAgentOptions({ cwd, sessionId, canUseTool, onSubagentEvent }
         mcpServers,
         ...(Object.keys(agents).length ? { agents } : {}),
         ...(hooks ? { hooks } : {}),
+        ...(forwardSubagentText ? { forwardSubagentText: true } : {}),
         maxTurns: base.maxTurns,
         effort: base.effort,
         disallowedTools: base.disallowedTools,

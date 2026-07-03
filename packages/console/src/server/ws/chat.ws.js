@@ -54,9 +54,10 @@ async function getWorkspaceManager() {
     return cachedManager;
 }
 
-// A user SDK message's content is either a plain string or an array of blocks —
-// pick out the text blocks and join them.
-function extractUserText(content) {
+// A message's content is either a plain string or an array of blocks — pick
+// out the text blocks and join them. Used for both user messages and
+// tool_result blocks, which share the same content shape.
+function extractText(content) {
     if (typeof content === 'string') return content;
     if (!Array.isArray(content)) return '';
     return content
@@ -65,13 +66,30 @@ function extractUserText(content) {
         .join('\n');
 }
 
+// Same content shape as extractText, but pulls out base64 images — tool
+// results like Read on a screenshot or a browser screenshot tool return
+// these alongside/instead of text.
+function extractImages(content) {
+    if (!Array.isArray(content)) return [];
+    return content
+        .filter((block) => block.type === 'image' && block.source?.type === 'base64')
+        .map((block) => ({ mediaType: block.source.media_type, data: block.source.data }));
+}
+
 function parseMessages(sdkMessages) {
     const blocks = [];
 
     for (const message of sdkMessages) {
         if (message.type === 'user') {
-            const text = extractUserText(message.message?.content);
+            const content = message.message?.content;
+            const text = extractText(content);
             if (text.trim()) blocks.push({ kind: 'user', text });
+            for (const block of Array.isArray(content) ? content : []) {
+                if (block.type !== 'tool_result') continue;
+                for (const image of extractImages(block.content)) {
+                    blocks.push({ kind: 'image', ...image });
+                }
+            }
             continue;
         }
         if (message.type !== 'assistant') continue;
@@ -95,6 +113,7 @@ export function handleChat(ws) {
     let chatKey = null;
     let cwd = null;
     const pending = new Map();
+    const activeSubagents = new Set();
     let seq = 0;
 
     const buildCanUseTool = async () => {
@@ -149,6 +168,75 @@ export function handleChat(ws) {
         }
     };
 
+    const sendSubagent = (agentId, payload) => send(ws, { type: 'subagent', agentId, ...payload });
+
+    // Assistant/user messages carrying parent_tool_use_id belong to a subagent's
+    // own turn, not the thread that spawned it — forward each block into the
+    // subagent panel as it streams in, same cadence as the main thread.
+    function forwardSubagentBlock(event) {
+        const agentId = event.parent_tool_use_id;
+        if (!activeSubagents.has(agentId)) {
+            activeSubagents.add(agentId);
+            sendSubagent(agentId, {
+                phase: 'start',
+                agentType: event.subagent_type || 'agent',
+                description: event.task_description || '',
+            });
+        }
+        if (event.type === 'user') {
+            for (const block of event.message?.content ?? []) {
+                if (block.type !== 'tool_result') continue;
+                for (const image of extractImages(block.content)) {
+                    sendSubagent(agentId, { phase: 'image', ...image });
+                }
+            }
+            return;
+        }
+        if (event.type !== 'assistant') return;
+
+        for (const block of event.message?.content ?? []) {
+            switch (block.type) {
+                case 'text':
+                    sendSubagent(agentId, { phase: 'text', text: block.text });
+                    break;
+                case 'tool_use':
+                    sendSubagent(agentId, {
+                        phase: 'tool',
+                        toolName: block.name,
+                        toolInput: block.input,
+                    });
+                    break;
+                case 'thinking':
+                    sendSubagent(agentId, { phase: 'thinking' });
+                    break;
+            }
+        }
+    }
+
+    // A subagent's completion surfaces on the spawning thread as a user message
+    // holding a tool_result for the agent's tool_use id — close its card here.
+    // Any other tool_result here belongs to the main thread's own tool call
+    // (e.g. Read on a screenshot); forward its images to the main chat.
+    function handleToolResults(event, extra) {
+        const content = event.message?.content;
+        if (!Array.isArray(content)) return;
+
+        for (const block of content) {
+            if (block.type !== 'tool_result') continue;
+            if (activeSubagents.has(block.tool_use_id)) {
+                activeSubagents.delete(block.tool_use_id);
+                sendSubagent(block.tool_use_id, {
+                    phase: 'stop',
+                    text: extractText(block.content),
+                });
+                continue;
+            }
+            for (const image of extractImages(block.content)) {
+                send(ws, { type: 'image', ...image, ...extra });
+            }
+        }
+    }
+
     // Translates one Claude Agent SDK stream event into WS message(s). `extra`
     // (e.g. { iteration: 2 }) is merged in so the client can route loop events
     // to the right iteration card instead of the main thread.
@@ -157,7 +245,10 @@ export function handleChat(ws) {
             send(ws, { type: 'summary', summary: event.summary, ...extra });
             return;
         }
+        if (event.parent_tool_use_id) return forwardSubagentBlock(event);
+        if (event.type === 'user') return handleToolResults(event, extra);
         if (event.type !== 'assistant') return;
+
         for (const block of event.message?.content ?? []) {
             switch (block.type) {
                 case 'text':
@@ -186,7 +277,7 @@ export function handleChat(ws) {
                 cwd,
                 sessionId: sessionId || undefined,
                 canUseTool,
-                onSubagentEvent: (evt) => send(ws, { type: 'subagent', ...evt }),
+                forwardSubagentText: true,
             });
             const stream = query({ prompt: text, options });
 

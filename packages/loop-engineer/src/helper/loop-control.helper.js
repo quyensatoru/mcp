@@ -1,8 +1,6 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 
-// One fresh server + result box per iteration: the tool handler runs in-process,
-// so setting a field on `result` is enough to signal completion back to the loop.
 export function createLoopControlServer() {
     const result = { done: false, summary: '' };
 

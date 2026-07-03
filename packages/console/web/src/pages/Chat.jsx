@@ -29,6 +29,10 @@ function fmtTime(ts) {
     return d.toLocaleDateString('vi-VN');
 }
 
+function addTimelineItem(subagent, item) {
+    return { ...subagent, timeline: [...subagent.timeline, item] };
+}
+
 export default function Chat({ onNavigateToWorktree }) {
     const [blocks, setBlocks] = useState([]);
     const [text, setText] = useState('');
@@ -106,6 +110,15 @@ export default function Chat({ onNavigateToWorktree }) {
                     if (m.iteration != null) addToIteration(m.iteration, { kind: 'thinking' });
                     else add({ kind: 'thinking' });
                     break;
+                case 'image':
+                    if (m.iteration != null)
+                        addToIteration(m.iteration, {
+                            kind: 'image',
+                            mediaType: m.mediaType,
+                            data: m.data,
+                        });
+                    else add({ kind: 'image', mediaType: m.mediaType, data: m.data });
+                    break;
                 case 'loop_start':
                     setLoopOpen(true);
                     setLoopStatus('running');
@@ -146,8 +159,9 @@ export default function Chat({ onNavigateToWorktree }) {
                                 {
                                     id: m.agentId,
                                     type: m.agentType,
+                                    description: m.description,
                                     status: 'running',
-                                    tools: [],
+                                    timeline: [],
                                     text: '',
                                     startedAt: Date.now(),
                                     open: true,
@@ -157,14 +171,28 @@ export default function Chat({ onNavigateToWorktree }) {
                         }
                         return list.map((s) => {
                             if (s.id !== m.agentId) return s;
-                            if (m.phase === 'tool')
-                                return {
-                                    ...s,
-                                    tools: [...s.tools, { name: m.toolName, input: m.toolInput }],
-                                };
-                            if (m.phase === 'stop')
-                                return { ...s, status: 'done', text: m.text || '' };
-                            return s;
+                            switch (m.phase) {
+                                case 'tool':
+                                    return addTimelineItem(s, {
+                                        kind: 'tool',
+                                        name: m.toolName,
+                                        input: m.toolInput,
+                                    });
+                                case 'text':
+                                    return addTimelineItem(s, { kind: 'text', text: m.text });
+                                case 'thinking':
+                                    return addTimelineItem(s, { kind: 'thinking' });
+                                case 'image':
+                                    return addTimelineItem(s, {
+                                        kind: 'image',
+                                        mediaType: m.mediaType,
+                                        data: m.data,
+                                    });
+                                case 'stop':
+                                    return { ...s, status: 'done', text: m.text || '' };
+                                default:
+                                    return s;
+                            }
                         });
                     });
                     break;
@@ -585,15 +613,24 @@ function LoopCard({ it }) {
             </div>
             <div className="sa-card-body">
                 <div className="sa-timeline">
-                    {it.blocks.map((b) => (
-                        <div className="ctool" key={b.id}>
-                            {b.kind === 'tool'
-                                ? `🔧 ${b.name}`
-                                : b.kind === 'thinking'
-                                  ? '💭 đang suy luận…'
-                                  : b.text}
-                        </div>
-                    ))}
+                    {it.blocks.map((b) =>
+                        b.kind === 'image' ? (
+                            <img
+                                key={b.id}
+                                className="chat-img"
+                                src={`data:${b.mediaType};base64,${b.data}`}
+                                alt=""
+                            />
+                        ) : (
+                            <div className="ctool" key={b.id}>
+                                {b.kind === 'tool'
+                                    ? `🔧 ${b.name}`
+                                    : b.kind === 'thinking'
+                                      ? '💭 đang suy luận…'
+                                      : b.text}
+                            </div>
+                        ),
+                    )}
                     {it.summary && <div className="sa-final-text">{it.summary}</div>}
                 </div>
             </div>
@@ -681,12 +718,41 @@ function SubagentPanel({
     );
 }
 
+function SubagentTimelineItem({ item }) {
+    switch (item.kind) {
+        case 'tool':
+            return (
+                <div className="ctool">
+                    🔧 <b>{item.name}</b>
+                    {item.input ? `\n${JSON.stringify(item.input, null, 2).slice(0, 300)}` : ''}
+                </div>
+            );
+        case 'text':
+            return <div className="sa-final-text">{item.text}</div>;
+        case 'thinking':
+            return <div className="cthink">💭 đang suy luận…</div>;
+        case 'image':
+            return (
+                <img
+                    className="chat-img"
+                    src={`data:${item.mediaType};base64,${item.data}`}
+                    alt=""
+                />
+            );
+        default:
+            return null;
+    }
+}
+
 function SubagentCard({ s, onToggle, tlRef }) {
+    const toolCount = s.timeline.filter((item) => item.kind === 'tool').length;
     return (
         <div className={'sa-card ' + s.status + (s.open ? ' open' : '')}>
             <div className="sa-card-head" onClick={onToggle}>
                 <span className={'dot ' + (s.status === 'running' ? 'b pulse' : 'g')} />
-                <span className="sa-card-name">{s.type}</span>
+                <span className="sa-card-name" title={s.description || undefined}>
+                    {s.type}
+                </span>
                 <span className="sp" />
                 <span className="sa-card-time">{fmtDur(Date.now() - s.startedAt)}</span>
                 <svg
@@ -700,15 +766,12 @@ function SubagentCard({ s, onToggle, tlRef }) {
                 </svg>
             </div>
             <div className="sa-card-meta">
-                <span className="chip">{s.tools.length} tool calls</span>
+                <span className="chip">{toolCount} tool calls</span>
             </div>
             <div className="sa-card-body">
                 <div className="sa-timeline" ref={tlRef}>
-                    {s.tools.map((t, i) => (
-                        <div className="ctool" key={i}>
-                            🔧 <b>{t.name}</b>
-                            {t.input ? `\n${JSON.stringify(t.input, null, 2).slice(0, 300)}` : ''}
-                        </div>
+                    {s.timeline.map((item, i) => (
+                        <SubagentTimelineItem key={i} item={item} />
                     ))}
                     {s.status === 'done' && s.text && <div className="sa-final-text">{s.text}</div>}
                 </div>
@@ -738,6 +801,15 @@ function Block({ b, reply }) {
             <div className="m">
                 <div className="ava">M</div>
                 <div className="body cthink">💭 đang suy luận…</div>
+            </div>
+        );
+    if (b.kind === 'image')
+        return (
+            <div className="m">
+                <div className="ava">M</div>
+                <div className="body">
+                    <img className="chat-img" src={`data:${b.mediaType};base64,${b.data}`} alt="" />
+                </div>
             </div>
         );
     if (b.kind === 'tool')

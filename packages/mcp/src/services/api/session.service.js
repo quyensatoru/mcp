@@ -8,6 +8,7 @@ import { SessionMissingModels } from '../../models/recorder/session-missing.mode
 import { dateRangeFilter } from '../../helpers/validate.helper.js';
 
 const SESSION_LIST_FIELDS = {
+    _id: 1,
     key: 1,
     device: 1,
     browser: 1,

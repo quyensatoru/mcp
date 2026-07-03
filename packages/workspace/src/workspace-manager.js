@@ -54,11 +54,7 @@ export class WorkspaceManager {
         const sessionDir = this.getWorkDir(sessionKey);
         const claudeDir = path.join(sessionDir, '.claude');
         const targetFile = path.join(claudeDir, 'settings.json');
-        const sourceFile = path.join(
-            os.homedir(),
-            '.claude',
-            'settings.json',
-        );
+        const sourceFile = path.join(os.homedir(), '.claude', 'settings.json');
 
         mkdirSync(claudeDir, { recursive: true });
 
@@ -115,7 +111,9 @@ export class WorkspaceManager {
             const { stdout, stderr } = await execFileAsync('codegraph', ['init'], {
                 cwd: sessionDir,
             });
-            logger.debug(`[workspace] created active plugin claude and init codegraph: ${sessionDir}`);
+            logger.debug(
+                `[workspace] created active plugin claude and init codegraph: ${sessionDir}`,
+            );
             console.log(stdout);
             console.error(stderr);
         } catch (e) {

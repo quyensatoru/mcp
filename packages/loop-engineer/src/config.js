@@ -60,7 +60,12 @@ async function run({ runKey, source, prompt, cwd, canUseTool, onEvent = () => {}
     if (!config.enabled) throw new Error('Loop Engineer đang bị tắt trong cấu hình');
 
     stopFlags.delete(runKey);
-    const loopRun = await createRun({ runKey, source, prompt, maxIterations: config.maxIterations });
+    const loopRun = await createRun({
+        runKey,
+        source,
+        prompt,
+        maxIterations: config.maxIterations,
+    });
 
     let sessionId;
     let costTotal = 0;
@@ -95,7 +100,7 @@ async function run({ runKey, source, prompt, cwd, canUseTool, onEvent = () => {}
                 if (event.type === 'result') {
                     turns = event.num_turns;
                     costUsd = event.total_cost_usd || 0;
-                } else if (event.type === 'assistant') {
+                } else if (event.type === 'assistant' && !event.parent_tool_use_id) {
                     for (const block of event.message?.content ?? []) {
                         if (block.type === 'tool_use') toolCount++;
                     }

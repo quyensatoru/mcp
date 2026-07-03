@@ -746,6 +746,13 @@
     list-style: none;
     padding-left: 4px;
 }
+.chat-img {
+    display: block;
+    max-width: 100%;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    margin: 6px 0;
+}
 .ctool {
     border: 1px solid var(--line);
     background: #fff;
@@ -836,6 +843,7 @@
     align-items: center;
     height: 42px;
     padding: 0 18px;
+    gap: 8px;
     border-bottom: 1px solid var(--line);
     background: #fff;
 }

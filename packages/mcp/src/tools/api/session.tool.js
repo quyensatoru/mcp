@@ -14,6 +14,7 @@ import {
 import { dateRangeFilter } from '../../helpers/validate.helper.js';
 import { toObjectId } from '../../helpers/objectid.helper.js';
 import { wrap } from '../../helpers/tool.helper.js';
+import { isValidObjectId } from 'mongoose';
 
 const TTL = 120;
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -209,6 +210,9 @@ export function registerSessionTools(server) {
         },
         wrap('api_get_pageviews', async ({ domain, sessionId }) => {
             if (!sessionId) return errorContent('Provide sessionId.');
+            if (!isValidObjectId(sessionId)) {
+                return errorContent('Invalid sessionId format');
+            }
             const proxy = await resolveProxy(domain);
             const shopId = await ShopService.idByDomain(proxy, domain);
             if (!shopId) return errorContent(`Shop not found: ${domain}`);
@@ -259,7 +263,11 @@ export function registerSessionTools(server) {
                 'Find pages by title or address, with heatmap-enabled flag. Use to locate a page id before querying heatmaps, or to check which pages have heatmap tracking on.',
             inputSchema: z.object({
                 domain: z.string().describe('Shopify domain'),
-                address: z.string().url().optional().describe('Keyword matched against page address'),
+                address: z
+                    .string()
+                    .url()
+                    .optional()
+                    .describe('Keyword matched against page address'),
                 limit: z.number().int().min(1).max(100).default(20).describe('Max pages to return'),
             }),
         },
@@ -270,7 +278,7 @@ export function registerSessionTools(server) {
 
             const filter = { shop: shopId };
             if (address) {
-                filter.address = address
+                filter.address = address;
             }
             const pages = await withCache(
                 cacheKey('page_list', { proxy, shopId, address, limit }),

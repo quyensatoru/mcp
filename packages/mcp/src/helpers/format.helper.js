@@ -51,7 +51,7 @@ export function formatSessionList(sessions, domain, source) {
     const rows = sessions.map((s, i) => {
         const flags = [s.frustrated && 'frustrated', s.status === false && 'open'].filter(Boolean);
         const head = `${i + 1}. ${s.device ?? '?'}/${s.browser ?? '?'} · ${s.location ?? '?'} · ${s.duration ?? 0}s · ${s.page_per_session ?? 0}pv${flags.length ? ` · ${flags.join(',')}` : ''}`;
-        const sub = `   key: ${s.key ?? '—'} · ${s.last_active ? new Date(s.last_active).toISOString() : '—'}`;
+        const sub = ` sessionId: ${s._id} · key: ${s.key ?? '—'} · ${s.last_active ? new Date(s.last_active).toISOString() : '—'}`;
         return `${head}\n${sub}`;
     });
     return [`${sessions.length} sessions in ${source} — ${domain}:`, '', ...rows].join('\n');
