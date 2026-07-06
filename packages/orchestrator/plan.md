@@ -1,186 +1,202 @@
 # @mida/orchestrator
 
-MCP **orchestration gateway** (ESM + Express + `@modelcontextprotocol/sdk`) — một MCP duy nhất
-đứng trước agent, điều phối nhiều **cụm MCP nhỏ** ở dưới (rabbit, mongo, redis, ...). Nó vừa là
-**MCP server** (với `@mida/agent`) vừa là **MCP client** (với các MCP hạ tầng).
+Một **MCP gateway mỏng** — bọc ngoài các **MCP server hạ tầng** của hệ thống Mida (mỗi RabbitMQ,
+Redis, Mongo... chạy MCP server riêng). Orchestrator gom (aggregate) tool của chúng lên cho agent
+qua **một** MCP duy nhất, cộng guard "trần năng lực" + router chọn cụm.
 
-Lớp tri thức (pipeline cycle, playbook, architecture/object knowledge) **KHÔNG** nằm ở đây — tách
-sang package riêng `@mida/knowledge` (xem `packages/knowledge/plan.md`). Orchestrator chỉ **ghi
-vào** và **truy hồi từ** knowledge.
+**Phạm vi hẹp:** orchestrator **không** có tool liên quan tới knowledge, **không** có tool để Claude
+Code inject context. Nó chỉ điều phối/chuyển tiếp. `@mida/knowledge` là MCP **riêng, độc lập**
+(agent gọi song song, không đi qua orchestrator). `mida-rca` **không liên quan** tới feature này.
 
 ---
 
 ## 1. Mục tiêu & phạm vi
 
-| Có làm                                                               | Không làm (để package khác)                          |
-| ------------------------------------------------------------------- | ---------------------------------------------------- |
-| Đăng ký / kết nối / discovery các MCP hạ tầng (đa cụm)              | Lưu trữ tri thức, playbook → `@mida/knowledge`       |
-| Aggregate + namespace tool của downstream lên cho agent            | Quyết định hỏi-phép người dùng → Agent SDK (đã có)   |
-| Guard "trần năng lực" (read/write/admin) theo config                | Kết nối Mattermost / stream UI → `@mida/agent`       |
-| Router chọn cụm khi có nhiều instance cùng loại                     | Đánh index codebase → CodeGraph                      |
-| Capture mỗi cycle (chuỗi tool call) → đẩy sang `@mida/knowledge`    |                                                      |
+| Có làm                                                         | Không làm                                            |
+| -------------------------------------------------------------- | ---------------------------------------------------- |
+| Đăng ký / kết nối / discovery các infra MCP (đa cụm)           | Lưu trữ tri thức, recall, inject → `@mida/knowledge` |
+| Aggregate + namespace tool downstream lên agent (plugin all)   | Quyết định hỏi-phép người dùng → Agent SDK (đã có)   |
+| Guard trần năng lực (read/write/admin), mỏng, defense-in-depth | Workflow debug / pipeline summary → `mida-skills`    |
+| Router chọn cụm khi có nhiều instance cùng loại                | Bất cứ thứ gì "nhớ lâu" — không state nghiệp vụ      |
 
-**Nguyên tắc:** orchestrator là **cổng + điều phối + guard**, mỏng nhất có thể. Mọi thứ "nhớ lâu"
-đi sang knowledge; mọi thứ "hỏi phép" đã có ở Agent SDK.
+Nguyên tắc: **càng mỏng càng tốt**. Không giữ state nghiệp vụ, không capture. Vào → guard → route →
+forward → ra.
 
 ---
 
 ## 2. Vị trí trong monorepo
 
 ```
-@mida/agent ──(mcpServers config)──▶ @mida/orchestrator ──(MCP client)──▶ rabbit-mcp (prod|staging)
-     │                                       │                          ├─▶ mongo-mcp  (shard1|shard2)
-     │  buildAgentOptions()                  │  guard + router          └─▶ redis-mcp  (cache|queue)
-     ▼                                       ▼
-@mida/claude-config                    @mida/knowledge   ◀── cũng được @mida/agent & skills dùng
- (đăng ký orchestrator như 1 mcpServer) (record/recall cycle + playbook)
+                 ┌──────────────────────────┐   MCP client   ┌─ rabbit-mcp  (prod | staging)
+@mida/agent ────▶│  @mida/orchestrator      │───────────────▶├─ redis-mcp   (cache | queue)
+   │  (mcpServers │  gateway: guard + route  │                └─ mongo-mcp   (shard1 | shard2)
+   │   config)    └──────────────────────────┘
+   │
+   └────────────▶ @mida/knowledge (MCP riêng: get_knowledge / save_knowledge)
 ```
 
-- Agent **không** kết nối trực tiếp các MCP hạ tầng. Chỉ nói chuyện với orchestrator → một điểm
-  kiểm soát, một điểm capture.
-- Orchestrator được khai báo trong `claude-config` như một `mcpServer` (giống `mida-rca` hiện tại,
-  xem `packages/claude-config/src/constant/defaults.constant.js`).
+- Agent khai báo **2 MCP độc lập** trong `claude-config`: `orchestrator` và `knowledge`
+  (giống cách khai báo mcpServer hiện có, `packages/claude-config/src/constant/defaults.constant.js`).
+- Agent **không** gọi thẳng infra MCP — chỉ qua orchestrator. Nhưng gọi knowledge **trực tiếp**.
 
 ---
 
-## 3. Kiến trúc: Gateway/Aggregator
+## 3. Kiến trúc: Gateway/Aggregator (thin)
 
-Hai vai:
+Hai vai, transport như các MCP khác trong repo (HTTP + JWT stateless, hoặc `stdio` local):
 
-1. **Server (với agent):** `createMcpServer()` (giống `packages/mcp/src/server.js`) đăng ký:
-   - **Aggregated tools** — proxy toàn bộ tool của downstream (đã namespace). Đây là ý "plugin all
-     tool" của yêu cầu.
-   - **Meta tools** — `targets_list`, `catalog_list`, `workflow_recall`, `workflow_run`, `ping`.
-2. **Client (với downstream):** một **registry** giữ pool MCP client (`@modelcontextprotocol/sdk`
-   client, stdio/http), gọi `tools/list` để lấy catalog, `tools/call` để chuyển tiếp.
+1. **Server (với agent):** `createMcpServer()` đăng ký:
+    - **Aggregated tools** — proxy toàn bộ tool downstream, đã namespace (ý "plugin all tool").
+    - **Introspection tools** — `targets_list`, `catalog_list`, `ping`. (Chỉ vậy — không có tool
+      nghiệp vụ nào khác.)
+2. **Client (với downstream):** registry giữ pool MCP client
+   (`@modelcontextprotocol/sdk/client`), `tools/list` lấy catalog, `tools/call` forward.
 
-Cả hai transport như `mida-rca`: HTTP (JWT, stateless) mặc định, `stdio` cho local.
-
-> **Lazy note:** P0 có thể chạy downstream **stdio child process** (đơn giản, không cần deploy
-> riêng) rồi mới nâng HTTP khi cần scale. `// ponytail: stdio-first, HTTP khi cần multi-host`.
+> `// ponytail: P0 downstream chạy stdio child-process; lên HTTP khi cần multi-host`
 
 ---
 
-## 4. Quyết định #1 — Guard đặt ở đâu? (đã nghiên cứu)
+## 4. Quyết định #1 — Guard đặt ở đâu (đã nghiên cứu)
 
-**Kết luận: nhận định của bạn đúng — và repo NÀY đã áp dụng đúng mô hình 2 lớp đó.** Permission
-chia làm 2 tầng riêng biệt:
+**Nhận định của bạn đúng.** Với kiến trúc "mỗi infra là 1 MCP nhỏ", permission chia 3 mức, mỗi mức
+đúng một nơi:
 
-### Lớp 1 — MCP = trần năng lực (capability floor), set bằng ENV/config
+| Mức                           | Nơi xử lý                                | Cơ chế                                                     |
+| ----------------------------- | ---------------------------------------- | ---------------------------------------------------------- |
+| Trần năng lực THẬT (read)     | **từng infra MCP nhỏ** (env/creds riêng) | rabbit-mcp/redis-mcp tự connect bằng user scope-hẹp        |
+| Trần năng lực phụ (bọc ngoài) | **orchestrator guard** (mỏng)            | `capability: read/write/admin` per-target, mặc định `read` |
+| Quyết định cấp phép + hỏi     | **Agent SDK** (host chung)               | `canUseTool` / `disallowedTools` / PreToolUse hook         |
 
-Đây là "config env cho mcp lên set quyền read". Bằng chứng đã có ở `mida-rca`:
+- **Read floor thật nằm ở mỗi MCP nhỏ** — đúng ý "config env cho mcp set quyền read". Ví dụ redis-mcp
+  chỉ cấp lệnh GET/SCAN nếu creds/config của nó read-only. Orchestrator không thay thế được điều này.
+- **Agent SDK giữ quyết định cấp phép** — đã build sẵn, dùng chung cho mọi MCP (kể cả knowledge):
+  `buildAgentOptions` (`packages/claude-config/src/config.js`) + `buildCanUseTool`
+  (`packages/agent/src/claude/mattermost.claude.js`): read-only auto-allow theo `READ_ONLY_REGEX`,
+  update/delete hỏi yes/no, `disallowedTools` chặn sẵn nhóm nguy hiểm.
+- **Guard orchestrator chỉ là cầu dao cứng phụ** — vì gateway forward được cả lệnh ghi (publish/set/
+  purge). Mặc định `read`; nâng `write`/`admin` là thay đổi config có chủ đích. Không thừa cho lệnh
+  huỷ, nhưng **không** tự dựng cơ chế hỏi-phép riêng (tránh 2 nguồn sự thật).
 
-- `packages/mcp/src/config/db.config.js` — kết nối Mongo bằng **user read-only**.
-- README `mida-mcp`: whitelist collection theo DB, chặn `$out/$merge/$function/$where`, redact
-  `access_token`/secret, App API chỉ GET + whitelist path.
-  → MCP **về mặt vật lý không ghi được**, bất kể agent muốn gì.
+### Điều kiện kỹ thuật — Namespacing giữ động từ
 
-Với orchestrator, mở rộng khái niệm này thành `capability` **per-target** (vì orchestrator nắm
-client hạ tầng **có thể ghi**: rabbit publish, redis set, mongo write — thứ `mida-rca` read-only
-chưa từng có):
-
-- Mỗi downstream target có `capability ∈ {read, write, admin}` (mặc định `read`).
-- `guard.helper.js` phân loại tool (read vs mutate) và **chặn ở biên MCP** nếu target chưa đủ quyền.
-
-### Lớp 2 — Agent SDK = quyết định cấp phép + human-in-the-loop
-
-Đây là "permission sẽ agent sdk quản lý". Bằng chứng đã có:
-
-- `packages/claude-config/src/config.js` → `buildAgentOptions()`: `permissionMode`,
-  `disallowedTools` (vd `mcp__twenty-crm__update_*`, `..._delete_*`), `allowedTools`, và PreToolUse
-  **deny hook** (`buildHooks` → `buildDenyHook`).
-- `packages/agent/src/claude/mattermost.claude.js` → `buildCanUseTool()`: auto-allow tool read-only
-  theo `READ_ONLY_REGEX`, còn tool update/delete thì **hỏi yes/no** (timeout → deny).
-
-### Khuyến nghị
-
-| Nhóm hành động            | Agent SDK (lớp 2)                          | Guard orchestrator (lớp 1)       |
-| ------------------------- | ----------------------------------------- | -------------------------------- |
-| read (get/list/search)    | auto-allow (`READ_ONLY_REGEX`)            | cho phép                         |
-| write (publish/set/insert)| `canUseTool` hỏi phép                      | yêu cầu `capability ≥ write`     |
-| delete/purge/drop/admin   | nằm sẵn trong `disallowedTools` + hỏi phép | yêu cầu `capability = admin`     |
-
-- **GIỮ quyết định cấp phép ở Agent SDK** — một chỗ, có human-in-the-loop, đã build sẵn, đồng nhất
-  cho mọi MCP. Orchestrator **không** dựng cơ chế hỏi-phép riêng (tránh 2 nguồn sự thật).
-- **Guard trần-năng-lực vẫn cần** ở orchestrator: đây là defense-in-depth. Một lệnh huỷ (queue
-  purge, key flush, collection drop) không nên chỉ dựa vào một cổng. Guard là "cầu dao cứng" bật
-  bằng config, độc lập với việc agent có bị lừa/lỗi hay không.
-
-### Điều kiện kỹ thuật để mapping chạy đúng — Namespacing convention
-
-Agent thấy tên đầy đủ `mcp__<server>__<local>`. `buildCanUseTool` lấy `toolName.split('__').pop()`
-để test `READ_ONLY_REGEX`. Vậy tên local **phải giữ động từ ở segment cuối** (sau `__`):
+Agent thấy `mcp__<server>__<local>`; `canUseTool` lấy `.split('__').pop()` để test read/write. Nên
+tên local **phải giữ động từ ở segment cuối**:
 
 ```
-downstream target "rabbit-prod", tool "queue_publish"
-  → local name:  rabbit_prod__queue_publish        (─ đổi thành _; __ ngăn giữa target và tool)
-  → agent thấy:  mcp__orchestrator__rabbit_prod__queue_publish
-  → .split('__').pop() = "queue_publish"  → READ_ONLY_REGEX không match → hỏi phép ✅
-  → disallowedTools:  "mcp__orchestrator__*__*purge*"  vẫn match ✅
+downstream "rabbit-prod" tool "queue_publish"
+  → local:  rabbit_prod__queue_publish       (─ → _ ; __ ngăn giữa target và tool)
+  → agent:  mcp__orchestrator__rabbit_prod__queue_publish
+  → .pop() = "queue_publish" → READ_ONLY_REGEX không match → SDK hỏi phép ✅
+  → disallowedTools "mcp__orchestrator__*__*purge*" vẫn match ✅
 ```
 
-`guard.helper.js` sẽ dùng chung `READ_ONLY_REGEX` (`packages/claude-config/src/constant/defaults.constant.js`)
-để phân loại → **một định nghĩa read/write duy nhất** cho cả 2 lớp.
+Guard dùng chung `READ_ONLY_REGEX` (`packages/claude-config/src/constant/defaults.constant.js`) để
+phân loại → **một định nghĩa read/write duy nhất** cho cả guard lẫn SDK.
 
 ---
 
 ## 5. Registry đa cụm + Router
 
-Yêu cầu: "nhiều cụm mcp rabbit, mongo, redis". Một downstream định danh bằng `(kind, cluster)`.
+Một downstream định danh `(kind, cluster)`.
 
-- **Registry** (`registry/registry.js`): đọc `McpTarget` từ Mongo → với mỗi target `enabled`, mở MCP
-  client, `tools/list`, cache catalog. Giữ map `name → { client, tools, capability }`.
-- **Router** (`router/router.js`): khi một tool cần "chọn cụm" (vd nhiều cụm rabbit), resolve target
-  theo hint. Mô phỏng đúng `resolveProxy(domain) → 1|2` của `mida-rca`
-  (`packages/mcp/src/services/proxy.service.js`) — hàm DUY NHẤT định tuyến.
-  - P0: chọn tường minh qua tham số (`cluster: "prod"`) hoặc target mặc định mỗi kind.
-  - P1: rule-based (theo domain/env) + cache Redis. `// ponytail: explicit-first, resolver sau`.
+- **Registry** (`registry/registry.js`): đọc `McpTarget` từ Mongo → target `enabled` thì mở client,
+  `tools/list`, cache catalog. Map `name → { client, tools, capability }`.
+- **Router** (`router/router.js`): khi cần chọn cụm (nhiều rabbit), resolve theo hint. P0 chọn tường
+  minh qua tham số (`cluster:"prod"`) hoặc target mặc định mỗi kind; P1 rule + cache Redis.
+  `// ponytail: explicit-first, resolver sau`.
+
+### Cấu hình đa kết nối — mở rộng N instance mỗi kind
+
+Yêu cầu: `mongo_uri` có **nhiều** connection string; rabbit, redis cũng vậy. Thiết kế sao cho thêm
+một instance là **thêm dữ liệu, không sửa code/schema** — tránh kiểu hardcode `URI_1/URI_2` của
+mida-rca cũ (không mở rộng được).
+
+**Nguồn sự thật runtime = `McpTarget` docs.** N doc cùng `kind`, khác `cluster` = N instance. Thêm
+cụm = thêm 1 doc. **Mỗi connection string = 1 process infra MCP riêng** (N mongo cluster ⇒ N
+process `mongo-mcp`, mỗi process nhận đúng 1 URI qua env). Registry spawn + giữ 1 MCP client cho
+mỗi doc `enabled` → thêm cụm không đụng code.
+
+> Registry chịu trách nhiệm vòng đời N child process: spawn lúc boot, health-check, restart khi
+> chết. `// ponytail: restart đơn giản (exponential backoff); orchestrator không chết theo child`
+
+**Kind template (constant)** — khai 1 lần "cách khởi chạy infra MCP đó" + "biến env mang connection
+string", để seed khỏi lặp:
+
+```js
+// constant/defaults.constant.js
+export const KIND_TEMPLATES = {
+    mongo: { command: 'mongo-mcp', connEnv: 'MONGO_URI' },
+    rabbit: { command: 'rabbit-mcp', connEnv: 'RABBITMQ_URL' },
+    redis: { command: 'redis-mcp', connEnv: 'REDIS_URL' },
+    // thêm kind mới = thêm 1 dòng
+};
+```
+
+**Env seed = danh sách per kind** (mở rộng vô hạn, không đánh số cứng):
+
+```
+MONGO_TARGETS=[{"cluster":"shard1","conn":"mongodb://..."},{"cluster":"shard2","conn":"..."}]
+RABBIT_TARGETS=[{"cluster":"prod","conn":"amqp://..."},{"cluster":"staging","conn":"..."}]
+REDIS_TARGETS=[{"cluster":"cache","conn":"redis://..."},{"cluster":"queue","conn":"..."}]
+```
+
+zod parse: `z.string().transform(JSON.parse).pipe(z.array(z.object({ cluster, conn, capability? })))`.
+Thêm instance = thêm phần tử mảng, schema không đổi. **Chốt: JSON-per-kind** (không dùng prefix-scan).
+
+**Seed** (`seed.js`): mỗi kind × mỗi phần tử → dựng 1 `McpTarget` từ template:
+
+```
+{ name: `${kind}-${cluster}`, kind, cluster,
+  command: tpl.command,
+  env: [{ name: tpl.connEnv, secretKey: `${kind}_${cluster}` }],   // trỏ secret, không plain
+  capability: item.capability ?? 'read' }
+```
+
+Connection string (chứa credential) đẩy vào **secret store** của `@mida/claude-config` (đã có
+`encrypt/decrypt`), doc chỉ giữ `secretKey`.
+
+HTTP downstream (P2): thay `command` bằng `url` per instance, cùng cấu trúc list.
 
 ---
 
-## 6. Data models
+## 6. Data model (chỉ 1)
 
-Chỉ **1 model** thuộc orchestrator (registry). Model cycle/playbook nằm ở `@mida/knowledge`.
-
-**`models/mcp-target.model.js`** — export thẳng model (giống `mcp-server.model.js`):
+**`models/mcp-target.model.js`** — export thẳng model (giống `mcp-server.model.js` của claude-config):
 
 ```js
-name        // unique, vd "rabbit-prod"
-kind        // enum: rabbit | mongo | redis | http | other
-cluster     // "prod" | "shard1" | ...
-enabled     // bool, default true
-transport   // enum: stdio | http, default stdio
-command     // stdio
-args        // [String], hỗ trợ ${secret:NAME} (giống mcp-server.model)
-url         // http
-env         // [{ name, value, secretKey }]
-capability  // enum: read | write | admin, default 'read'   ← trần năng lực (Q1)
-order       // number
+name; // unique, "rabbit-prod"
+kind; // enum: rabbit | redis | mongo | http | other
+cluster; // "prod" | "shard1" | ...
+enabled; // default true
+transport; // stdio | http, default stdio
+command / args; // stdio (args hỗ trợ ${secret:NAME})
+url; // http
+env; // [{ name, value, secretKey }]
+capability; // read | write | admin, default 'read'   ← guard floor (mục 4)
+order;
 // timestamps, versionKey:false
 ```
 
-**`models/guard-policy.model.js`** — *(P1, optional)* singleton chỉnh từ console: regex phân loại
-mutate/admin override + danh sách pattern chặn cứng. P0 dùng constant + `READ_ONLY_REGEX`, **chưa
-cần model này**. `// ponytail: skip tới khi cần chỉnh guard runtime`.
+Secret của downstream tham chiếu `secretKey`, resolve qua secret store của `@mida/claude-config`
+(đã có `encrypt/decrypt` + thay `${secret:NAME}`). Không lưu plain trong target doc.
 
 ---
 
 ## 7. Config facade — `orchestratorService`
 
-Gom theo tính năng/model như `configService` (`packages/claude-config/src/config.js`) và
-`loopEngineerService`:
+Gom nhóm theo tính năng (như `configService`):
 
 ```js
 export const orchestratorService = {
-    connect,                              // mongo + mở registry
+    connect,                                        // mongo + mở registry
     registry: { list, connect, catalog, callTool, refresh },
-    guard:    { get, set, check },        // check(fullToolName) → allow|deny (trần năng lực)
-    router:   { resolve },                // resolve(kind, hint) → target
-    target:   { list, upsert, delete },   // CRUD downstream (console dùng)
+    guard:    { get, set, check },                   // check(fullToolName) → allow|deny
+    router:   { resolve },                           // resolve(kind, hint) → target
+    target:   { list, upsert, delete },              // CRUD downstream (console)
 };
 ```
 
-Knowledge được gọi qua `@mida/knowledge` (import trực tiếp), không nhét vào facade này.
+Không có nhóm `knowledge` — orchestrator không đụng tới nó.
 
 ---
 
@@ -188,117 +204,100 @@ Knowledge được gọi qua `@mida/knowledge` (import trực tiếp), không nh
 
 ```
 packages/orchestrator/
-├── package.json                 @mida/orchestrator
-├── plan.md
-├── .env.example
-├── scripts/
-│   └── gen-token.js             (copy từ mida-mcp)
+├── package.json                @mida/orchestrator
+├── plan.md · .env.example
+├── scripts/gen-token.js
 └── src/
-    ├── index.js                 bootstrap: mongo → registry → MCP server (http|stdio)
-    ├── server.js                createMcpServer(): registerAllTools/Resources
-    ├── config.js                orchestratorService (facade gom nhóm)
-    ├── seed.js                  seed target mặc định + capability=read
+    ├── index.js                bootstrap: mongo → registry → MCP server (http|stdio)
+    ├── server.js               createMcpServer(): registerAllTools
+    ├── config.js               orchestratorService (facade)
+    ├── seed.js                 seed target mặc định, capability=read
     ├── config/
-    │   ├── env.config.js        zod (MONGO_URI, MCP_TRANSPORT, JWT_SECRET, PORT, REDIS_URL)
-    │   ├── mongo.config.js      connect/watch/getConnection/isReady (copy claude-config)
-    │   └── redis.config.js      cache catalog/route (optional, copy mida-mcp)
+    │   ├── env.config.js        zod (MONGO_URI, MCP_TRANSPORT, PORT, JWT_SECRET, REDIS_URL?)
+    │   ├── mongo.config.js      connect/watch/getConnection/isReady
+    │   └── redis.config.js      cache catalog/route (optional)
     ├── constant/
-    │   ├── defaults.constant.js  target mặc định, NAMESPACE_SEP, MUTATE_REGEX
+    │   ├── defaults.constant.js  target mặc định, NAMESPACE_SEP
     │   └── prompt.constant.js    system prompt orchestrator
     ├── helper/
     │   ├── mcp-client.helper.js  connect downstream (stdio/http), listTools, callTool
-    │   ├── namespace.helper.js   toLocal(target,tool) / parse(local) — giữ động từ cuối
-    │   ├── guard.helper.js       guard: { get, set, check } — dùng READ_ONLY_REGEX
-    │   ├── format.helper.js      textContent/errorContent/redact (copy mida-mcp)
-    │   └── tool.helper.js        wrap(name, fn) (copy mida-mcp)
-    ├── registry/
-    │   └── registry.js           pool client + catalog tổng hợp
-    ├── router/
-    │   └── router.js             resolve(kind, hint) → target
-    ├── middleware/
-    │   └── auth.middleware.js    JWT (copy mida-mcp)
-    ├── tools/
-    │   ├── index.js              registerAllTools
-    │   ├── ping.tool.js
-    │   ├── registry.tool.js      targets_list, catalog_list  (read)
-    │   ├── proxy.tool.js         đăng ký động các aggregated tool (plugin all)
-    │   └── workflow.tool.js      workflow_recall / workflow_run  (cầu sang knowledge)
-    └── resources/
-        └── index.js              (optional) catalog:// resource
+    │   ├── namespace.helper.js   toLocal / parse — giữ động từ cuối
+    │   ├── guard.helper.js       guard: { get, set, check } (dùng READ_ONLY_REGEX)
+    │   ├── format.helper.js      textContent/errorContent/redact
+    │   └── tool.helper.js        wrap(name, fn)
+    ├── registry/registry.js
+    ├── router/router.js
+    ├── middleware/auth.middleware.js   JWT
+    └── tools/
+        ├── index.js             registerAllTools
+        ├── ping.tool.js
+        ├── registry.tool.js     targets_list, catalog_list  (read)
+        └── proxy.tool.js        đăng ký động các aggregated tool (plugin all)
 ```
 
 ---
 
 ## 9. Tool surface
 
-| Tool                                    | Loại   | Mô tả                                                     |
-| --------------------------------------- | ------ | -------------------------------------------------------- |
-| `ping`                                  | read   | health                                                   |
-| `targets_list`                          | read   | liệt kê downstream + kind/cluster/capability/status      |
-| `catalog_list`                          | read   | liệt kê mọi aggregated tool, gom theo target             |
-| `<kind>_<cluster>__<tool>` (động)       | mix    | proxy 1-1 tool downstream, giữ nguyên inputSchema        |
-| `workflow_recall`                       | read   | task → chuỗi bước đã chạy thành công (từ `@mida/knowledge`)|
-| `workflow_run`                          | mutate | chạy 1 playbook (fan-out; mỗi bước vẫn qua guard + SDK)   |
+| Tool                              | Loại | Mô tả                                             |
+| --------------------------------- | ---- | ------------------------------------------------- |
+| `ping`                            | read | health                                            |
+| `targets_list`                    | read | downstream + kind/cluster/capability/status       |
+| `catalog_list`                    | read | mọi aggregated tool, gom theo target              |
+| `<kind>_<cluster>__<tool>` (động) | mix  | proxy 1-1 tool downstream, giữ nguyên inputSchema |
 
-Aggregated tool đăng ký **động** lúc boot: registry catalog → với mỗi (target, tool) gọi
-`server.registerTool(localName, { inputSchema: <schema downstream> }, wrap(...))`. Handler: `guard.check`
-→ `registry.callTool` → `knowledge.runs.step()` (capture) → trả `format`.
+Đăng ký aggregated tool **động** lúc boot: catalog → mỗi (target, tool) →
+`server.registerTool(localName, { inputSchema: <downstream schema> }, wrap(handler))`.
+Handler: `guard.check` → `registry.callTool` → `format`. **Không** capture, **không** ghi state.
 
 ---
 
-## 10. Luồng một cycle (end-to-end)
+## 10. Luồng một call
 
 ```
-1. agent gọi workflow_recall("purge dead-letter queue cụm prod")
-     └─ orchestrator → knowledge.recall.forTask() → trả chuỗi bước đã kiểm chứng (nếu có)
-2. agent theo gợi ý, gọi mcp__orchestrator__rabbit_prod__queue_purge {queue:"dlq"}
-     ├─ Agent SDK canUseTool: tên .pop()="queue_purge" → không read-only → HỎI yes/no
-     │    (queue_purge còn nằm trong disallowedTools mặc định → chặn tới khi cho phép rõ ràng)
-     ├─ guard.check: rabbit-prod.capability? phải = admin, không thì DENY (trần năng lực)
-     ├─ registry.callTool(rabbit-prod, "queue_purge", args) → downstream MCP
-     └─ knowledge.runs.step(runKey, {target, tool, status, ms})   ← capture
-3. hết phiên → knowledge.runs.finish(runKey) → (P2) distill thành playbook nếu thành công
+agent gọi mcp__orchestrator__rabbit_prod__queue_purge {queue:"dlq"}
+  ├─ Agent SDK canUseTool: .pop()="queue_purge" → không read-only → HỎI (còn trong disallowedTools)
+  ├─ guard.check: rabbit-prod.capability phải = admin, không thì DENY
+  ├─ registry.callTool(rabbit-prod, "queue_purge", args) → rabbit-mcp
+  └─ trả format(kết quả)         ← hết, không lưu gì
 ```
-
-**Correlation `runKey`:** HTTP stateless (như `mida-rca`, `sessionIdGenerator: undefined`) nên
-không có session liên tục. P0: agent truyền `runKey` (thread id nó đã có) như tham số ẩn ở meta
-tool, hoặc lấy từ `sub` của JWT. Ghi rời từng step rồi stitch theo `runKey`.
-`// ponytail: runKey qua arg; nâng stateful nếu cần trace chặt`. *(Cần xác nhận — xem mục 13.)*
 
 ---
 
 ## 11. Env & bảo mật
 
-`.env` (zod, copy khung `mida-mcp`): `MONGO_URI`, `MCP_TRANSPORT`, `PORT`, `JWT_SECRET`,
-`REDIS_URL?`. Secret của downstream **không** để trong target doc dạng plain — tham chiếu
-`secretKey` và resolve qua `@mida/claude-config` secret store (đã có `encrypt/decrypt`), giống cách
-`buildMcpServers()` thay `${secret:NAME}`.
+`.env` (zod):
 
-Bảo mật kế thừa `mida-rca`: JWT bearer (`auth.middleware.js`), redact secret khỏi mọi output, guard
-mặc định `read`, delete/admin mặc định trong `disallowedTools`.
+| Biến                                                 | Vai trò                                                     |
+| ---------------------------------------------------- | ----------------------------------------------------------- |
+| `MONGO_URI`                                          | DB **registry của orchestrator** (lưu `McpTarget`), 1 chuỗi |
+| `MONGO_TARGETS` / `RABBIT_TARGETS` / `REDIS_TARGETS` | **danh sách connection downstream** để seed (mục 5)         |
+| `MCP_TRANSPORT` / `PORT` / `JWT_SECRET`              | server MCP                                                  |
+| `REDIS_URL?`                                         | cache catalog/route (optional)                              |
+
+Lưu ý phân biệt: `MONGO_URI` là store của chính orchestrator; các `*_TARGETS` mới là "nhiều
+connection string" của hạ tầng cần điều phối. Kế thừa: JWT bearer (`auth.middleware.js`), redact
+secret, guard mặc định `read`, nhóm delete/admin nằm sẵn trong `disallowedTools` phía agent.
 
 ---
 
 ## 12. Phasing
 
-| Phase | Nội dung                                                                                     |
-| ----- | ------------------------------------------------------------------------------------------- |
-| P0    | registry (stdio) + aggregated proxy tool + guard read/write + `targets_list`/`catalog_list` + JWT + capture cơ bản sang `@mida/knowledge` |
-| P1    | router đa cụm (rule + Redis cache) + `guard-policy` model chỉnh từ console + `workflow_recall` |
-| P2    | `workflow_run` (replay playbook) + auto-distill cycle→playbook (bên knowledge)               |
-
-**Ponytail deferrals:** downstream HTTP (P0 dùng stdio); `guard-policy` model (P0 dùng constant);
-router resolver (P0 chọn tường minh); vector match (knowledge dùng keyword trước).
+| Phase | Nội dung                                                                                            | Trạng thái                                                                         |
+| ----- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| P0    | registry (stdio) + aggregated proxy + guard read/write/admin + `targets_list`/`catalog_list` + JWT  | ✅ xong                                                                            |
+| P1    | child resilience (onclose → reconnect backoff, retry-on-dead-client) + live refresh (change stream) | ✅ xong                                                                            |
+| P2    | downstream HTTP transport (`transport:'http'` + `url`)                                              | ✅ cơ bản                                                                          |
+| —     | router rule-engine + Redis cache                                                                    | ⏸ hoãn (YAGNI: tool per-cluster đã địa chỉ hoá được, chưa có luật định tuyến thật) |
 
 ---
 
 ## 13. Cần xác nhận
 
-1. **Downstream MCP rabbit/mongo/redis** — dùng MCP có sẵn (npm) hay tự viết? Nếu tự viết, chúng là
-   package riêng trong monorepo hay repo khác? (ảnh hưởng registry transport & seed)
-2. **Gateway vs Sidecar** — chốt mô hình **gateway** (agent chỉ nói với orchestrator, xác nhận ở
-   mục 3)? Hay agent vẫn gọi thẳng vài MCP và orchestrator chỉ điều phối phần phức tạp?
-3. **`runKey` correlation** — chấp nhận truyền qua arg (P0) hay cần orchestrator stateful để trace
-   liền mạch một cycle?
-4. **Guard vs disallowedTools** — có muốn guard tự đồng bộ danh sách mutate/admin vào
-   `disallowedTools` của agent (một nguồn) không, hay giữ 2 nơi khai báo?
+1. **Infra MCP (rabbit/redis/mongo)** — dùng MCP npm có sẵn hay tự viết? Nếu tự viết: package riêng
+   trong monorepo hay repo khác? (quyết registry transport + seed)
+2. **Router** — có cần chọn cụm tự động (theo domain/env) ngay P0, hay chọn tường minh là đủ?
+3. **Guard ↔ disallowedTools** — muốn guard tự bơm danh sách mutate/admin vào `disallowedTools` của
+   agent (một nguồn) không, hay khai báo 2 nơi?
+
+> ✅ Đã chốt: mỗi connection string = 1 process infra MCP riêng · env `*_TARGETS` dạng JSON-per-kind.

@@ -1,0 +1,28 @@
+{
+    "name": "@mida/orchestrator",
+    "version": "1.0.0",
+    "description": "Thin MCP gateway — wraps Mida infra MCP servers (rabbit/redis/mongo, đa cụm), aggregate + guard + route",
+    "type": "module",
+    "main": "src/index.js",
+    "scripts": {
+        "start": "node src/index.js",
+        "dev": "node --watch src/index.js",
+        "seed": "node scripts/seed.js",
+        "token": "node scripts/gen-token.js",
+        "test": "node --test \"test/**/*.test.js\""
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@mida/logger": "workspace:*",
+        "@modelcontextprotocol/sdk": "^1.29.0",
+        "dotenv": "^17.4.2",
+        "express": "^5.2.1",
+        "jsonwebtoken": "^9.0.2",
+        "mongodb-mcp-server": "^1.13.0",
+        "mongoose": "^8.24.0",
+        "rabbitmq-mcp": "^0.2.0",
+        "zod": "^4.4.3"
+    }
+}

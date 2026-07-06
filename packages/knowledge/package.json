@@ -1,0 +1,26 @@
+{
+    "name": "@mida/knowledge",
+    "version": "1.0.0",
+    "description": "Kho tri thức dùng chung của Mida dưới dạng MCP — get_knowledge / save_knowledge cho Agent SDK & skill",
+    "type": "module",
+    "main": "src/index.js",
+    "scripts": {
+        "start": "node src/start.js",
+        "dev": "node --watch src/start.js",
+        "seed": "node scripts/seed.js",
+        "token": "node scripts/gen-token.js",
+        "test": "node --test \"test/**/*.test.js\""
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@mida/logger": "workspace:*",
+        "@modelcontextprotocol/sdk": "^1.29.0",
+        "dotenv": "^17.4.2",
+        "express": "^5.2.1",
+        "jsonwebtoken": "^9.0.2",
+        "mongoose": "^8.24.0",
+        "zod": "^4.4.3"
+    }
+}

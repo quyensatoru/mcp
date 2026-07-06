@@ -7,9 +7,9 @@
     "author": "quyenpv",
     "type": "module",
     "scripts": {
-        "dev": "concurrently -n mcp,agent,console,web -c blue,green,magenta,cyan \"npm run dev --workspace=@mida/mcp\" \"npm run dev --workspace=@mida/agent\" \"npm run dev --workspace=@mida/console\" \"npm run dev:web --workspace=@mida/console\"",
+        "dev": "concurrently -n mcp,orchestration,knowledge,agent,console,web -c blue,yellow,red,green,magenta,cyan \"npm run dev --workspace=@mida/mcp\" \"npm run dev --workspace=@mida/orchestrator\" \"npm run dev --workspace=@mida/knowledge\" \"npm run dev --workspace=@mida/agent\" \"npm run dev --workspace=@mida/console\" \"npm run dev:web --workspace=@mida/console\"",
         "dev:web": "npm run dev:web --workspace=@mida/console",
-        "mcp": "pnpm --filter mida-mcp",
+        "seed": "pnpm --filter @mida/orchestrator seed && pnpm --filter @mida/knowledge seed",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "lint": "eslint packages"

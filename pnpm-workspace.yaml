@@ -1,5 +1,11 @@
 packages:
     - 'packages/*'
 allowBuilds:
+    '@modelcontextprotocol/ext-apps': set this to true or false
+    cpu-features: set this to true or false
     esbuild: true
+    kerberos: set this to true or false
+    mongodb-client-encryption: set this to true or false
+    os-dns-native: set this to true or false
     playwright: true
+    ssh2: set this to true or false

@@ -1,7 +1,13 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 export const READ_ONLY_REGEX =
     '\\b(get|list|search|find|fetch|read|view|query|retrieve|describe|show|count|stat|info|ping|whoami|preview|check|download)\\b';
 
 export const YES_REGEX = '^(yes|y|ok|có|co|✅|1)(\\s|$)';
+
+// Repo root để trỏ entry của các MCP nội bộ (orchestrator/knowledge) — portable, khỏi hardcode.
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 
 export function buildDefaults(env = process.env) {
     const gitlabUrl = (env.GITLAB_URL || 'https://gitlab.com').replace(/\/$/, '');
@@ -86,6 +92,23 @@ export function buildDefaults(env = process.env) {
                         secretKey: 'GOOGLE_CLIENT_SECRET',
                     },
                 ],
+            },
+            {
+                // MCP gateway điều phối các infra MCP (rabbit/redis/mongo). Chạy stdio local,
+                // tự đọc packages/orchestrator/.env — không cần env/secret ở đây.
+                name: 'orchestrator',
+                enabled: true,
+                command: 'node',
+                args: [path.join(REPO_ROOT, 'packages/orchestrator/src/index.js')],
+                env: [],
+            },
+            {
+                // Kho tri thức (get_knowledge / save_knowledge). Chạy stdio local, tự đọc .env.
+                name: 'knowledge',
+                enabled: true,
+                command: 'node',
+                args: [path.join(REPO_ROOT, 'packages/knowledge/src/start.js')],
+                env: [],
             },
         ],
 
