@@ -1,0 +1,29 @@
+{
+    "name": "@mida/mida-doc",
+    "version": "1.0.0",
+    "description": "MCP server quản lý và tra cứu tài liệu (docs) Mida",
+    "license": "ISC",
+    "author": "quyenpv",
+    "type": "module",
+    "main": "src/index.js",
+    "scripts": {
+        "start": "node src/index.js",
+        "dev": "node --watch src/index.js",
+        "crawl:docs": "node scripts/crawl-docs.js",
+        "docs:index": "node scripts/build-docs-index.js",
+        "gen:token": "node scripts/gen-token.js",
+        "lint": "eslint src scripts",
+        "lint:fix": "eslint src scripts --fix",
+        "test": "vitest run"
+    },
+    "dependencies": {
+        "@mendable/firecrawl-js": "^1.5.0",
+        "@mida/logger": "workspace:*",
+        "@modelcontextprotocol/sdk": "^1.12.0",
+        "jsonwebtoken": "^9.0.2",
+        "minisearch": "^7.1.0"
+    },
+    "devDependencies": {
+        "vitest": "^1.6.0"
+    }
+}
