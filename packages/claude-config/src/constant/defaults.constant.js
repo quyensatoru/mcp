@@ -6,7 +6,6 @@ export const READ_ONLY_REGEX =
 
 export const YES_REGEX = '^(yes|y|ok|có|co|✅|1)(\\s|$)';
 
-// Repo root để trỏ entry của các MCP nội bộ (orchestrator/knowledge) — portable, khỏi hardcode.
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 
 export function buildDefaults(env = process.env) {
@@ -94,8 +93,21 @@ export function buildDefaults(env = process.env) {
                 ],
             },
             {
-                // MCP gateway điều phối các infra MCP (rabbit/redis/mongo). Chạy stdio local,
-                // tự đọc packages/orchestrator/.env — không cần env/secret ở đây.
+                name: 'mcp-mattermost',
+                enabled: !!(env.MATTERMOST_TOKEN && env.MATTERMOST_TEAM),
+                command: 'npx',
+                args: ['-y', '@dakatan/mcp-mattermost'],
+                env: [
+                    { name: 'MCP_MATTERMOST_URL', secretKey: 'MATTERMOST_URL' },
+                    { name: 'MCP_MATTERMOST_TOKEN', secretKey: 'MATTERMOST_TOKEN' },
+                    { name: 'MCP_MATTERMOST_TEAM_NAME', secretKey: 'MATTERMOST_TEAM' },
+                    {
+                        name: 'NODE_OPTIONS',
+                        value: `--require ${path.join(REPO_ROOT, 'packages/claude-config/scripts/mcp-mattermost-bearer-fix.cjs')}`,
+                    },
+                ],
+            },
+            {
                 name: 'orchestrator',
                 enabled: true,
                 command: 'node',
@@ -103,7 +115,6 @@ export function buildDefaults(env = process.env) {
                 env: [],
             },
             {
-                // Kho tri thức (get_knowledge / save_knowledge). Chạy stdio local, tự đọc .env.
                 name: 'knowledge',
                 enabled: true,
                 command: 'node',
@@ -155,6 +166,10 @@ export function buildDefaults(env = process.env) {
             TWENTY_BASE_URL: env.TWENTY_BASE_URL,
             GOOGLE_CLIENT_ID: env.GOOGLE_CLIENT_ID,
             GOOGLE_CLIENT_SECRET: env.GOOGLE_CLIENT_SECRET,
+            MATTERMOST_URL: env.MATTERMOST_URL,
+            MATTERMOST_TOKEN: env.MATTERMOST_TOKEN,
+            MATTERMOST_TEAM: env.MATTERMOST_TEAM,
+            MATTERMOST_CHANNELS: env.MATTERMOST_CHANNELS,
         },
     };
 }

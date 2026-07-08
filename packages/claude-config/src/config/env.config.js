@@ -5,9 +5,9 @@ import { z } from 'zod';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Reuses the agent's .env until this package has its own runtime deployment.
-dotenv.config({ path: path.resolve(__dirname, '../../../agent/.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../agent/.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../mattermost/.env') });
 
 const envSchema = z.object({
     MONGO_URI: z.string().optional(),
@@ -35,10 +35,14 @@ const envSchema = z.object({
 
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
+
+    MATTERMOST_URL: z.string().url().optional(),
+    MATTERMOST_TOKEN: z.string().optional(),
+    MATTERMOST_TEAM: z.string().optional(),
+    MATTERMOST_CHANNELS: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
-
 if (!parsed.success) {
     console.error('❌ Invalid claude-config environment variables:');
     console.error(parsed.error.flatten().fieldErrors);
